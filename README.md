@@ -5,7 +5,7 @@ Userscript by **Pride** ([ExtraPotions/vivid-prism-heron](https://github.com/Ext
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.5** |
+| Version | **1.1.6** |
 | Author | Pride |
 | Repo | [ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron) |
 | Namespace | `pride.flag-highlighter` |
@@ -82,6 +82,10 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 | `README.md` | This document |
 
 ## Changelog
+
+### 1.1.6
+- Fill-crop icon assets (64 / 128 / 512) with no empty padding
+- FAB size 48×48, more gap from other fixed buttons
 
 ### 1.1.5
 - Settings FAB shows the GitHub `icon-128.png` (circular clip, charcoal fallback) instead of a rainbow fill

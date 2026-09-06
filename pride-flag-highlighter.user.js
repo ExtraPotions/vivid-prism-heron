@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.5
+// @version      1.1.6
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       Pride
 // @license      CC BY-NC-SA 4.0
@@ -1070,8 +1070,8 @@
   right: 16px;
   bottom: 16px;
   z-index: 2147483647;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   overflow: hidden;
   border: none;
@@ -1522,9 +1522,9 @@
             .join('');
     }
 
-    const FAB_SIZE = 42;
-    const FAB_GAP = 10;
-    const FAB_MARGIN = 16;
+    const FAB_SIZE = 48;
+    const FAB_GAP = 16;
+    const FAB_MARGIN = 20;
     const FAB_SEARCH_CAP = 400;
     const FAB_ICON_URL = 'https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-128.png';
 
