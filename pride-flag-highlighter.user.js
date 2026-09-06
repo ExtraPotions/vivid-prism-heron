@@ -1,20 +1,20 @@
 // ==UserScript==
-// @name         Pride Flag Highlighter
-// @namespace    pride.flag-highlighter
-// @version      1.2.2
-// @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
+// @name         Prism Pride Highlighter
+// @namespace    prism.pride-highlighter
+// @version      1.3.0
+// @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
 // @match        *://*/*
 // @run-at       document-start
 // @grant        none
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-64.png
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
 
 /*
- * Pride Flag Highlighter — expDARE / ExtraPotions
+ * Prism Pride Highlighter — expDARE / ExtraPotions
  * License: CC BY-NC-SA 4.0
  * License notice: includes adaptations of earlier CC BY-NC-SA material by Yeosangist.
  */
@@ -939,9 +939,10 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.2.2';
-    const SETTINGS_KEY = 'pride.flag-highlighter.settings';
-    const LAST_VERSION_KEY = 'pride.flag-highlighter.lastVersion';
+    const SCRIPT_VERSION = '1.3.0';
+    const SETTINGS_KEY = 'prism.pride-highlighter.settings';
+    const LEGACY_SETTINGS_KEY = 'pride.flag-highlighter.settings';
+    const LAST_VERSION_KEY = 'prism.pride-highlighter.lastVersion';
     const UI_ROOT_ID = '__pride_flag_highlighter_ui';
     const UI_ROOT_SELECTOR = `#${UI_ROOT_ID}`;
     const HIGHLIGHT_SELECTOR = `.${HIGHLIGHT_CLASS}`;
@@ -998,11 +999,16 @@
 
     function loadSettings() {
         try {
-            const raw = localStorage.getItem(SETTINGS_KEY);
+            const current = localStorage.getItem(SETTINGS_KEY);
+            const raw = current || localStorage.getItem(LEGACY_SETTINGS_KEY);
             if (!raw) {
                 return defaultSettings();
             }
-            return normalizeSettings(JSON.parse(raw));
+            const migrated = normalizeSettings(JSON.parse(raw));
+            if (!current) {
+                saveSettings(migrated);
+            }
+            return migrated;
         } catch (err) {
             return defaultSettings();
         }
@@ -1088,33 +1094,32 @@
   right: 16px;
   bottom: 16px;
   z-index: 2147483647;
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   padding: 0;
-  overflow: visible;
-  border: none;
-  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 13px;
   cursor: pointer;
-  background: #2a2a2a;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.28);
-  opacity: 0.72;
-  transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: none;
+  background: #121722;
+  box-shadow: 0 5px 18px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 #${UI_ROOT_ID} .pfh-fab img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 999px;
+  object-fit: contain;
   pointer-events: none;
 }
 #${UI_ROOT_ID} .pfh-fab:hover,
 #${UI_ROOT_ID} .pfh-fab:focus-visible {
-  opacity: 1;
-  transform: scale(1.05);
+  transform: translateY(-1px);
   outline: none;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,0.65), 0 8px 20px rgba(0,0,0,0.32);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.38), 0 0 0 2px rgba(122,208,255,0.7);
 }
+#${UI_ROOT_ID} .pfh-fab[data-dragging="1"] { cursor: grabbing; transform: none; }
 #${UI_ROOT_ID} .pfh-toast {
   position: fixed;
   left: 50%;
@@ -1149,12 +1154,12 @@
   right: 16px;
   bottom: 68px;
   z-index: 2147483647;
-  width: min(320px, calc(100vw - 24px));
-  max-height: min(70vh, 520px);
+  width: min(344px, calc(100vw - 24px));
+  max-height: min(72vh, 540px);
   display: none;
   flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.9rem 0.95rem 0.85rem;
+  gap: 0;
+  padding: 0;
   border-radius: 14px;
   background: #12141a;
   color: #f2f4f8;
@@ -1163,23 +1168,37 @@
 }
 #${UI_ROOT_ID} .pfh-panel[data-open="1"] { display: flex; }
 #${UI_ROOT_ID} .pfh-panel h2 {
-  margin: 0;
-  font-size: 0.95rem;
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
   font-weight: 700;
 }
+#${UI_ROOT_ID} .pfh-panel-head,
+#${UI_ROOT_ID} .pfh-section,
+#${UI_ROOT_ID} .pfh-actions { padding-left: 18px; padding-right: 18px; }
+#${UI_ROOT_ID} .pfh-panel-head { padding-top: 17px; padding-bottom: 13px; }
+#${UI_ROOT_ID} .pfh-subtitle { margin: 0; color: rgba(242,244,248,0.66); font-size: 0.76rem; }
+#${UI_ROOT_ID} .pfh-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; padding-bottom: 10px; }
+#${UI_ROOT_ID} .pfh-section-title { color: rgba(242,244,248,0.6); font-size: 0.7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
 #${UI_ROOT_ID} .pfh-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  min-height: 34px;
   font-size: 0.86rem;
 }
-#${UI_ROOT_ID} .pfh-row label {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  cursor: pointer;
-}
+#${UI_ROOT_ID} .pfh-row + .pfh-row { border-top: 1px solid rgba(255,255,255,0.06); }
+#${UI_ROOT_ID} .pfh-row-main { min-height: 44px; font-weight: 700; }
+#${UI_ROOT_ID} .pfh-row-main .pfh-row-copy { color: #fff; }
+#${UI_ROOT_ID} .pfh-row-copy { min-width: 0; }
+#${UI_ROOT_ID} .pfh-row-detail { display: block; color: rgba(242,244,248,0.57); font-size: .72rem; font-weight: 400; margin-top: 1px; }
+#${UI_ROOT_ID} .pfh-switch { position: relative; display: inline-flex; flex: 0 0 auto; width: 36px; height: 20px; cursor: pointer; }
+#${UI_ROOT_ID} .pfh-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+#${UI_ROOT_ID} .pfh-switch-track { width: 36px; height: 20px; border-radius: 999px; background: #596171; border: 1px solid rgba(255,255,255,.2); transition: background .15s ease; }
+#${UI_ROOT_ID} .pfh-switch-track::after { content: ''; display: block; width: 14px; height: 14px; margin: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform .15s ease; }
+#${UI_ROOT_ID} .pfh-switch input:checked + .pfh-switch-track { background: linear-gradient(90deg, #e66aa1, #67cfff, #a185f5); }
+#${UI_ROOT_ID} .pfh-switch input:checked + .pfh-switch-track::after { transform: translateX(16px); }
+#${UI_ROOT_ID} .pfh-switch input:focus-visible + .pfh-switch-track { outline: 2px solid #9bdcff; outline-offset: 2px; }
 #${UI_ROOT_ID} select,
 #${UI_ROOT_ID} button.pfh-btn {
   font: inherit;
@@ -1201,7 +1220,7 @@
   max-height: 240px;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
-  padding: 0.45rem 0.55rem;
+  padding: 0 0.55rem;
   display: flex;
   flex-direction: column;
   gap: 0.28rem;
@@ -1210,15 +1229,25 @@
 #${UI_ROOT_ID} .pfh-flags label {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  justify-content: space-between;
+  gap: 0.65rem;
   font-size: 0.8rem;
   cursor: pointer;
-  padding: 0.12rem 0;
+  padding: 0.42rem 0;
 }
+#${UI_ROOT_ID} .pfh-flag-name { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+#${UI_ROOT_ID} .pfh-flag-name > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#${UI_ROOT_ID} details.pfh-details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; min-height: 34px; font-size: .86rem; }
+#${UI_ROOT_ID} details.pfh-details > summary::-webkit-details-marker { display: none; }
+#${UI_ROOT_ID} details.pfh-details > summary::after { content: 'Show'; color: #9bdcff; font-size: .76rem; }
+#${UI_ROOT_ID} details.pfh-details[open] > summary::after { content: 'Hide'; }
 #${UI_ROOT_ID} .pfh-actions {
   display: flex;
   gap: 0.45rem;
-  justify-content: flex-end;
+  justify-content: space-between;
+  padding-top: 10px;
+  padding-bottom: 13px;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 #${UI_ROOT_ID} .pfh-swatch {
   width: 14px;
@@ -1567,6 +1596,13 @@
         };
     }
 
+    function switchHtml(id, checked, label, className = '') {
+        return `<label class="pfh-switch ${className}">` +
+            `<input id="${id}" type="checkbox"${checked ? ' checked' : ''} aria-label="${label}" />` +
+            '<span class="pfh-switch-track" aria-hidden="true"></span>' +
+            '</label>';
+    }
+
     function buildFlagChecklistHtml() {
         return FLAGS
             .slice()
@@ -1575,20 +1611,40 @@
                 const swatch = flagGradient(flag.colors);
                 return (
                     `<label>` +
-                    `<input class="pfh-flag-toggle" type="checkbox" value="${flag.id}" checked />` +
+                    '<span class="pfh-flag-name">' +
                     `<span class="pfh-swatch" style="--pfh-swatch:${swatch}"></span>` +
-                    `<span>${flag.label}</span>` +
+                    `<span>${flag.label}</span></span>` +
+                    `<span class="pfh-switch"><input class="pfh-flag-toggle" type="checkbox" value="${flag.id}" checked aria-label="Enable ${flag.label}" />` +
+                    '<span class="pfh-switch-track" aria-hidden="true"></span></span>' +
                     `</label>`
                 );
             })
             .join('');
     }
 
-    const FAB_SIZE = 32;
+    const FAB_SIZE = 48;
     const FAB_GAP = 8;
     const FAB_MARGIN = 16;
     const FAB_SEARCH_CAP = 400;
-    const FAB_ICON_URL = 'https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-64.png';
+    const FAB_POSITION_KEY = 'prism.pride-highlighter.fabBottom';
+    const FAB_ICON_URL = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Cdefs%3E%3ClinearGradient id="r" x1="12" y1="11" x2="52" y2="53" gradientUnits="userSpaceOnUse"%3E%3Cstop stop-color="%23ff4f9a"/%3E%3Cstop offset=".3" stop-color="%23ffd54a"/%3E%3Cstop offset=".56" stop-color="%2355d6ff"/%3E%3Cstop offset=".78" stop-color="%238d6cff"/%3E%3Cstop offset="1" stop-color="%23ff6aa2"/%3E%3C/linearGradient%3E%3ClinearGradient id="f" x1="21" y1="18" x2="42" y2="43" gradientUnits="userSpaceOnUse"%3E%3Cstop stop-color="white"/%3E%3Cstop offset="1" stop-color="%23dce8ff"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="64" height="64" rx="15" fill="%23121722"/%3E%3Cpath d="M32 10 37 27 54 32 37 37 32 54 27 37 10 32 27 27Z" fill="url(%23r)"/%3E%3Cpath d="m32 17 4.7 11.3L47 32l-10.3 3.7L32 47l-4.7-11.3L17 32l10.3-3.7Z" fill="url(%23f)"/%3E%3Cpath d="m32 20 2.8 9.2L44 32l-9.2 2.8L32 44l-2.8-9.2L20 32l9.2-2.8Z" fill="%23f8fbff"/%3E%3C/svg%3E';
+
+    function savedFabBottom() {
+        try {
+            const value = Number(localStorage.getItem(FAB_POSITION_KEY));
+            return Number.isFinite(value) && value >= FAB_MARGIN ? value : null;
+        } catch (_err) {
+            return null;
+        }
+    }
+
+    function saveFabBottom(value) {
+        try {
+            localStorage.setItem(FAB_POSITION_KEY, String(value));
+        } catch (_err) {
+            // Position persistence is optional; dragging still works this page.
+        }
+    }
 
     function rectsOverlap(a, b) {
         return !(
@@ -1667,6 +1723,16 @@
 
     function placeFabAndPanel() {
         if (!fabEl || !panelEl) {
+            return;
+        }
+
+        const storedBottom = savedFabBottom();
+        if (storedBottom !== null) {
+            const bottom = Math.min(storedBottom, Math.max(FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN));
+            fabEl.style.right = `${FAB_MARGIN}px`;
+            fabEl.style.bottom = `${bottom}px`;
+            panelEl.style.right = `${FAB_MARGIN}px`;
+            panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
             return;
         }
 
@@ -1808,8 +1874,8 @@
         fabEl = document.createElement('button');
         fabEl.type = 'button';
         fabEl.className = 'pfh-fab';
-        fabEl.title = 'Pride Flag Highlighter settings';
-        fabEl.setAttribute('aria-label', 'Pride Flag Highlighter settings');
+        fabEl.title = 'Prism Pride Highlighter settings';
+        fabEl.setAttribute('aria-label', 'Prism Pride Highlighter settings');
         fabEl.setAttribute('aria-expanded', 'false');
         fabEl.setAttribute('aria-controls', 'pfh-panel');
 
@@ -1824,30 +1890,25 @@
         panelEl.id = 'pfh-panel';
         panelEl.dataset.open = '0';
         panelEl.setAttribute('role', 'dialog');
-        panelEl.setAttribute('aria-label', 'Pride Flag Highlighter settings');
+        panelEl.setAttribute('aria-label', 'Prism Pride Highlighter settings');
 
         panelEl.innerHTML = `
-            <h2>Pride Flag Highlighter</h2>
-            <div class="pfh-row">
-                <label><input id="pfh-enabled" type="checkbox" /> Enable highlighting</label>
+            <div class="pfh-panel-head"><h2>Prism Pride Highlighter</h2><p class="pfh-subtitle">Reveal identity colour cues in page text.</p></div>
+            <div class="pfh-section">
+                <div class="pfh-section-title">Protection</div>
+                <div class="pfh-row pfh-row-main"><span class="pfh-row-copy">Highlight protection<span class="pfh-row-detail">Enable colour highlighting</span></span>${switchHtml('pfh-enabled', true, 'Enable highlight protection')}</div>
             </div>
-            <div class="pfh-row">
-                <label><input id="pfh-exclude-site" type="checkbox" /> Exclude this site</label>
+            <div class="pfh-section">
+                <div class="pfh-section-title">This site</div>
+                <div class="pfh-row"><span class="pfh-row-copy">Exclude this site<span class="pfh-row-detail" id="pfh-host-note"></span></span>${switchHtml('pfh-exclude-site', false, 'Exclude this site')}</div>
             </div>
-            <div class="pfh-host-note" id="pfh-host-note"></div>
-            <div class="pfh-row">
-                <span>Style</span>
-                <select id="pfh-style" aria-label="Highlight style">
-                    <option value="gradient">Gradient text</option>
-                    <option value="underline">Underline</option>
-                </select>
+            <div class="pfh-section">
+                <div class="pfh-section-title">Appearance</div>
+                <div class="pfh-row"><span>Highlight style</span><select id="pfh-style" aria-label="Highlight style"><option value="gradient">Gradient text</option><option value="underline">Underline</option></select></div>
+                <div class="pfh-row"><span>Hover labels</span>${switchHtml('pfh-labels', true, 'Show hover labels')}</div>
             </div>
-            <div class="pfh-row">
-                <label><input id="pfh-labels" type="checkbox" /> Show hover labels</label>
-            </div>
-            <div>
-                <div class="pfh-row" style="margin-bottom:0.35rem"><span>Flags</span></div>
-                <div class="pfh-flags">${buildFlagChecklistHtml()}</div>
+            <div class="pfh-section">
+                <details class="pfh-details"><summary>Flag visibility</summary><div class="pfh-flags">${buildFlagChecklistHtml()}</div></details>
             </div>
             <div class="pfh-actions">
                 <button type="button" class="pfh-btn" id="pfh-reset">Reset defaults</button>
@@ -1859,8 +1920,47 @@
         uiRoot.appendChild(fabEl);
         (document.body || document.documentElement).appendChild(uiRoot);
 
+        let fabWasDragged = false;
+        fabEl.addEventListener('pointerdown', (ev) => {
+            if (ev.button !== 0) {
+                return;
+            }
+            const startY = ev.clientY;
+            const startBottom = Number.parseFloat(fabEl.style.bottom) || FAB_MARGIN;
+            let moved = false;
+            fabEl.setPointerCapture(ev.pointerId);
+            const onMove = (moveEv) => {
+                const distance = moveEv.clientY - startY;
+                if (Math.abs(distance) > 4) {
+                    moved = true;
+                    fabEl.dataset.dragging = '1';
+                    const maxBottom = Math.max(FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN);
+                    const bottom = Math.max(FAB_MARGIN, Math.min(maxBottom, startBottom - distance));
+                    fabEl.style.bottom = `${bottom}px`;
+                    panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
+                }
+            };
+            const onEnd = () => {
+                fabEl.removeEventListener('pointermove', onMove);
+                fabEl.removeEventListener('pointerup', onEnd);
+                fabEl.removeEventListener('pointercancel', onEnd);
+                delete fabEl.dataset.dragging;
+                if (moved) {
+                    fabWasDragged = true;
+                    saveFabBottom(Number.parseFloat(fabEl.style.bottom));
+                }
+            };
+            fabEl.addEventListener('pointermove', onMove);
+            fabEl.addEventListener('pointerup', onEnd);
+            fabEl.addEventListener('pointercancel', onEnd);
+        });
+
         fabEl.addEventListener('click', (ev) => {
             ev.stopPropagation();
+            if (fabWasDragged) {
+                fabWasDragged = false;
+                return;
+            }
             setPanelOpen(panelEl.dataset.open !== '1');
         });
 
@@ -1869,6 +1969,12 @@
         panelEl.querySelector('#pfh-close').addEventListener('click', () => setPanelOpen(false));
         panelEl.querySelector('#pfh-reset').addEventListener('click', () => {
             applySettings(defaultSettings());
+            try {
+                localStorage.removeItem(FAB_POSITION_KEY);
+            } catch (_err) {
+                // Resetting the display position is optional.
+            }
+            placeFabAndPanel();
         });
 
         const onChange = () => applySettings(readPanelSettings());
@@ -1974,7 +2080,7 @@
             // sessionStorage optional; still show once after persist above
         }
 
-        showToast(`Pride Flag Highlighter updated to v${SCRIPT_VERSION}`);
+        showToast(`Prism Pride Highlighter updated to v${SCRIPT_VERSION}`);
     }
 
     /*

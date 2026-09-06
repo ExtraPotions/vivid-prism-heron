@@ -1,11 +1,11 @@
-# Pride Flag Highlighter
+# Prism Pride Highlighter
 
 <p align="center">
-  <img src="icon-128.png" width="128" height="128" alt="Pride Flag Highlighter icon" />
+  <img src="prism-pride-highlighter.svg" width="128" height="128" alt="Prism Pride Highlighter icon" />
 </p>
 
 <p align="center">
-  Paint LGBTQ+ identity words with their pride-flag colours — gradient text or underlines, hover labels, and a settings panel.
+  Reveal LGBTQ+ identity words with their pride-flag colours — gradient text or underlines, hover labels, and a compact settings panel.
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** [v1.2.2](https://github.com/ExtraPotions/vivid-prism-heron/releases/tag/v1.2.2)
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.3.0
 
 | Stat | Value |
 |------|-------|
@@ -38,15 +38,15 @@ Optional: open [`demo.html`](demo.html) locally to preview without an extension.
 
 ## Settings
 
-Tap the **32×32** Aa button (bottom-right; slides left of other corner widgets if needed):
+Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets). Drag it up or down to place it where it is most useful; the position is remembered.
 
-- Enable / disable highlighting  
-- **Exclude this site** — skip highlights on the current host (button stays so you can undo)  
-- Style: gradient text or underline  
-- Hover labels on/off  
-- Per-flag checklist  
+- **Highlight protection** — the prominent main switch enables or disables highlighting
+- **Exclude this site** — skip highlights on the current host (the control remains available so you can undo it)
+- Style: gradient text or underline
+- Hover labels on/off
+- Flag visibility, tucked into a collapsible section to keep the main panel focused
 
-Saved under `pride.flag-highlighter.settings`. A short toast appears once after a version update (not on every page load).
+All binary choices use keyboard-accessible pill switches with clear on/off positions. Existing preferences migrate from `pride.flag-highlighter.settings` to `prism.pride-highlighter.settings`. Reset defaults also restores automatic button placement. A short toast appears once after a version update (not on every page load).
 
 ## Customize flags
 

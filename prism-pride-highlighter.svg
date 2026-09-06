@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Prism Pride Highlighter</title>
+  <defs>
+    <linearGradient id="refraction" x1="12" y1="11" x2="52" y2="53" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff4f9a"/><stop offset=".3" stop-color="#ffd54a"/><stop offset=".56" stop-color="#55d6ff"/><stop offset=".78" stop-color="#8d6cff"/><stop offset="1" stop-color="#ff6aa2"/>
+    </linearGradient>
+    <linearGradient id="facet" x1="21" y1="18" x2="42" y2="43" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/><stop offset="1" stop-color="#dce8ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="#121722"/>
+  <path d="M32 10 37 27 54 32 37 37 32 54 27 37 10 32 27 27Z" fill="url(#refraction)"/>
+  <path d="m32 17 4.7 11.3L47 32l-10.3 3.7L32 47l-4.7-11.3L17 32l10.3-3.7Z" fill="url(#facet)"/>
+  <path d="m32 20 2.8 9.2L44 32l-9.2 2.8L32 44l-2.8-9.2L20 32l9.2-2.8Z" fill="#f8fbff"/>
+</svg>
