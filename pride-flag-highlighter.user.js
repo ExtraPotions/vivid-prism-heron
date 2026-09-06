@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.8
+// @version      1.1.9
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
 // @match        *://*/*
 // @run-at       document-start
 // @grant        none
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-128.png
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-64.png
 // ==/UserScript==
 
 /*
@@ -1526,7 +1526,7 @@
     const FAB_GAP = 16;
     const FAB_MARGIN = 20;
     const FAB_SEARCH_CAP = 400;
-    const FAB_ICON_URL = 'https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-128.png';
+    const FAB_ICON_URL = 'https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-64.png';
 
     function rectsOverlap(a, b) {
         return !(

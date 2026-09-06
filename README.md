@@ -5,7 +5,7 @@ Userscript by **expDARE** ([ExtraPotions/vivid-prism-heron](https://github.com/E
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.8** |
+| Version | **1.1.9** |
 | Author | expDARE |
 | Repo | [ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron) |
 | Namespace | `pride.flag-highlighter` |
@@ -70,7 +70,7 @@ Prefer documented stripe orders; skip niche flags when colours are unclear. Keep
 
 ## Icon
 
-Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscript `@icon` and the settings FAB use the 128px asset on `main`.
+Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscript `@icon` and the settings FAB use the **64px** asset on `main`.
 
 ## Files
 
@@ -83,6 +83,9 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 
 ## Changelog
 
+### 1.1.9
+- Point `@icon` and FAB at `icon-64.png`
+
 ### 1.1.8
 - FAB is 32×32 and prefers placing to the left of other corner buttons
 
@@ -94,7 +97,7 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 - FAB size 48×48, more gap from other fixed buttons
 
 ### 1.1.5
-- Settings FAB shows the GitHub `icon-128.png` (circular clip, charcoal fallback) instead of a rainbow fill
+- Settings FAB shows the GitHub `icon-64.png` (circular clip, charcoal fallback) instead of a rainbow fill
 - Collision-aware FAB placement: auto-dodges other fixed/sticky UI (prefer up, then left)
 
 ### 1.1.4
