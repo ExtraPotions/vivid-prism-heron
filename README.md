@@ -8,7 +8,7 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | 1.0.0 |
+| Version | 1.0.1 |
 | Author | Pride |
 | Namespace | `pride.flag-highlighter` |
 | Match | `*://*/*` |
@@ -34,7 +34,7 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 
 **Original set (kept):** queer / LGBT(+)/LGBTQIA(+)/pride; gay / achillean / mlm; lesbian / wlw; bisexual / bi; pansexual / pan; transgender / trans; nonbinary / non-binary / enby; asexual / ace; aromantic / aro; aroace; demisexual / demi; demiromantic; genderfluid; genderqueer; agender; bigender; pangender; omnisexual / omni; polysexual; intersex; two-spirit; sapphic; questioning.
 
-**Expanded additions:** progress pride; Philadelphia pride; polyamorous / polyam; demigirl; demiboy; demigender; transmasculine / transmasc; transfeminine / transfem; genderflux; maverique; androgyne; neutrois; graysexual / greysexual; grayromantic / greyromantic; abrosexual; multisexual; queerplatonic / qpr; butch; femme; bear; leather; straight ally / ally; oriented aroace; cupiosexual; fraysexual; lithromantic / akoiromantic; genderfae; genderfaun; genderflor; trigender; polygender; acespec; arospec.
+**Expanded additions:** progress pride; Philadelphia pride; polyamorous / polyam; demigirl; demiboy; demigender; transmasculine / transmasc; transfeminine / transfem; genderflux; maverique; androgyne; neutrois; graysexual / greysexual; grayromantic / greyromantic; abrosexual; multisexual; queerplatonic / qpr; butch; femme; bear; leather; straight ally / ally; oriented aroace; cupiosexual; fraysexual; lithromantic / akoiromantic; genderfae; genderfaun; genderflor; trigender; polygender; acespec; arospec; heteroflexible / heteroflex.
 
 > Short ambiguous tokens like bare `poly` are **not** matched (too broad). Prefer `polysexual`, `polyamorous`, or `polyam`. Short forms such as `bi`, `pan`, `ace`, `aro`, and `enby` remain as in the original.
 

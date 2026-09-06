@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.0.0
+// @version      1.0.1
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       Pride
 // @license      CC BY-NC-SA 4.0
@@ -577,6 +577,26 @@
                 '#009FE3',
                 '#E50051',
                 '#340C46'
+            ]
+        },
+
+
+        // Heteroflexible (Library.LGBT: grayscale hetero base + rainbow strip)
+        {
+            words: ['heteroflexible', 'hetero-flexible', 'heteroflex'],
+            colors: [
+                '#000000',
+                '#51504D',
+                '#7B7B7A',
+                '#E40303',
+                '#FF8C00',
+                '#FFED00',
+                '#008026',
+                '#004DFF',
+                '#750787',
+                '#B0B1B0',
+                '#DEDEDE',
+                '#EEEEEE'
             ]
         },
 
