@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.2.1
+// @version      1.2.2
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,6 +9,8 @@
 // @run-at       document-start
 // @grant        none
 // @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-64.png
+// @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
+// @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
 
 /*
@@ -937,7 +939,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.2.1';
+    const SCRIPT_VERSION = '1.2.2';
     const SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'pride.flag-highlighter.lastVersion';
     const UI_ROOT_ID = '__pride_flag_highlighter_ui';

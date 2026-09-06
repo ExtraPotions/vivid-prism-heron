@@ -17,7 +17,7 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** [v1.2.1](https://github.com/ExtraPotions/vivid-prism-heron/releases/tag/v1.2.1)
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** [v1.2.2](https://github.com/ExtraPotions/vivid-prism-heron/releases/tag/v1.2.2)
 
 | Stat | Value |
 |------|-------|
@@ -32,6 +32,7 @@
 2. Download **`pride-flag-highlighter.user.js`** from the [latest release](https://github.com/ExtraPotions/vivid-prism-heron/releases/latest).
 3. Open the file (or drag it into the extension dashboard) and save.
 4. Browse as usual — matching words pick up flag colours.
+5. Tampermonkey/Violentmonkey can auto-update from the GitHub release (`@downloadURL` / `@updateURL`).
 
 Optional: open [`demo.html`](demo.html) locally to preview without an extension.
 
