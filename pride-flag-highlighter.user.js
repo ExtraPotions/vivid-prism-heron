@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.9
+// @version      1.2.0
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -937,7 +937,9 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
+    const SCRIPT_VERSION = '1.2.0';
     const SETTINGS_KEY = 'pride.flag-highlighter.settings';
+    const LAST_VERSION_KEY = 'pride.flag-highlighter.lastVersion';
     const UI_ROOT_ID = '__pride_flag_highlighter_ui';
     const UI_ROOT_SELECTOR = `#${UI_ROOT_ID}`;
     const HIGHLIGHT_SELECTOR = `.${HIGHLIGHT_CLASS}`;
@@ -952,7 +954,8 @@
         enabled: true,
         style: 'gradient', // 'gradient' | 'underline'
         showLabels: true,
-        disabledFlags: Object.freeze([])
+        disabledFlags: Object.freeze([]),
+        excludedHosts: Object.freeze([])
     });
 
     function defaultSettings() {
@@ -960,7 +963,8 @@
             enabled: DEFAULT_SETTINGS.enabled,
             style: DEFAULT_SETTINGS.style,
             showLabels: DEFAULT_SETTINGS.showLabels,
-            disabledFlags: []
+            disabledFlags: [],
+            excludedHosts: []
         };
     }
 
@@ -969,13 +973,25 @@
         const disabled = Array.isArray(source.disabledFlags)
             ? source.disabledFlags.filter(id => typeof id === 'string')
             : [];
+        const excludedHosts = Array.isArray(source.excludedHosts)
+            ? source.excludedHosts.filter(host => typeof host === 'string' && host.length > 0)
+            : [];
 
         return {
             enabled: source.enabled !== false,
             style: source.style === 'underline' ? 'underline' : 'gradient',
             showLabels: source.showLabels !== false,
-            disabledFlags: [...new Set(disabled)]
+            disabledFlags: [...new Set(disabled)],
+            excludedHosts: [...new Set(excludedHosts)]
         };
+    }
+
+    function currentHost() {
+        return location.hostname;
+    }
+
+    function isSiteExcluded() {
+        return settings.excludedHosts.includes(currentHost());
     }
 
     function loadSettings() {
@@ -1073,14 +1089,14 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: none;
   border-radius: 999px;
   cursor: pointer;
   background: #2a2a2a;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.28);
   opacity: 0.72;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 #${UI_ROOT_ID} .pfh-fab img {
   display: block;
@@ -1095,6 +1111,36 @@
   opacity: 1;
   transform: scale(1.05);
   outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,0.65), 0 8px 20px rgba(0,0,0,0.32);
+}
+#${UI_ROOT_ID} .pfh-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%) translateY(6px);
+  z-index: 2147483647;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: #12141a;
+  color: #f2f4f8;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  font: 600 12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  letter-spacing: 0.01em;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#${UI_ROOT_ID} .pfh-toast[data-show="1"] {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#${UI_ROOT_ID} .pfh-host-note {
+  font-size: 0.75rem;
+  color: rgba(242,244,248,0.65);
+  margin-top: -0.25rem;
 }
 #${UI_ROOT_ID} .pfh-panel {
   position: fixed;
@@ -1295,7 +1341,7 @@
     }
 
     function highlightingActive() {
-        return settings.enabled && Boolean(regex);
+        return settings.enabled && !isSiteExcluded() && Boolean(regex);
     }
 
     function processTextNode(node) {
@@ -1439,7 +1485,7 @@
         }
         rebuildMatcher();
         installStyle();
-        if (settings.enabled) {
+        if (settings.enabled && !isSiteExcluded()) {
             processPage();
         }
         startObserving();
@@ -1474,6 +1520,13 @@
         panelEl.querySelector('#pfh-enabled').checked = settings.enabled;
         panelEl.querySelector('#pfh-style').value = settings.style;
         panelEl.querySelector('#pfh-labels').checked = settings.showLabels;
+        panelEl.querySelector('#pfh-exclude-site').checked = isSiteExcluded();
+
+        const hostNote = panelEl.querySelector('#pfh-host-note');
+        if (hostNote) {
+            const host = currentHost() || '(unknown host)';
+            hostNote.textContent = `Current site: ${host}`;
+        }
 
         const disabled = new Set(settings.disabledFlags);
         for (const input of panelEl.querySelectorAll('.pfh-flag-toggle')) {
@@ -1497,11 +1550,18 @@
             }
         }
 
+        const host = currentHost();
+        const excludedHosts = settings.excludedHosts.filter(h => h !== host);
+        if (panelEl.querySelector('#pfh-exclude-site').checked && host) {
+            excludedHosts.push(host);
+        }
+
         return {
             enabled: panelEl.querySelector('#pfh-enabled').checked,
             style: panelEl.querySelector('#pfh-style').value,
             showLabels: panelEl.querySelector('#pfh-labels').checked,
-            disabledFlags
+            disabledFlags,
+            excludedHosts
         };
     }
 
@@ -1523,8 +1583,8 @@
     }
 
     const FAB_SIZE = 32;
-    const FAB_GAP = 16;
-    const FAB_MARGIN = 20;
+    const FAB_GAP = 8;
+    const FAB_MARGIN = 16;
     const FAB_SEARCH_CAP = 400;
     const FAB_ICON_URL = 'https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-64.png';
 
@@ -1614,7 +1674,7 @@
         let chosenBottom = FAB_MARGIN;
         let found = false;
 
-        // Prefer up first (increase bottom), then left (increase right).
+        // Prefer left first (increase right), then up (increase bottom).
         // Prefer sitting to the left of other corner widgets; only stack upward if needed.
         for (let bottomOff = 0; bottomOff <= FAB_SEARCH_CAP && !found; bottomOff += step) {
             for (let rightOff = 0; rightOff <= FAB_SEARCH_CAP; rightOff += step) {
@@ -1770,6 +1830,10 @@
                 <label><input id="pfh-enabled" type="checkbox" /> Enable highlighting</label>
             </div>
             <div class="pfh-row">
+                <label><input id="pfh-exclude-site" type="checkbox" /> Exclude this site</label>
+            </div>
+            <div class="pfh-host-note" id="pfh-host-note"></div>
+            <div class="pfh-row">
                 <span>Style</span>
                 <select id="pfh-style" aria-label="Highlight style">
                     <option value="gradient">Gradient text</option>
@@ -1807,6 +1871,7 @@
 
         const onChange = () => applySettings(readPanelSettings());
         panelEl.querySelector('#pfh-enabled').addEventListener('change', onChange);
+        panelEl.querySelector('#pfh-exclude-site').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-style').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-labels').addEventListener('change', onChange);
         panelEl.querySelector('.pfh-flags').addEventListener('change', onChange);
@@ -1836,6 +1901,68 @@
 
     /*
      * ============================================================
+     * VERSION TOAST
+     * ============================================================
+     */
+
+    let toastEl = null;
+    let toastTimer = null;
+
+    function ensureToastEl() {
+        if (toastEl && toastEl.isConnected) {
+            return toastEl;
+        }
+        if (!uiRoot) {
+            return null;
+        }
+        toastEl = document.createElement('div');
+        toastEl.className = 'pfh-toast';
+        toastEl.setAttribute('role', 'status');
+        toastEl.setAttribute('aria-live', 'polite');
+        uiRoot.appendChild(toastEl);
+        return toastEl;
+    }
+
+    function showToast(message, durationMs = 3500) {
+        const el = ensureToastEl();
+        if (!el) {
+            return;
+        }
+        el.textContent = message;
+        el.dataset.show = '1';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            el.dataset.show = '0';
+        }, durationMs);
+    }
+
+    function maybeShowVersionToast() {
+        let previous = null;
+        try {
+            previous = localStorage.getItem(LAST_VERSION_KEY);
+        } catch (_err) {
+            previous = null;
+        }
+
+        if (previous === SCRIPT_VERSION) {
+            return;
+        }
+
+        if (previous) {
+            showToast(`Pride Flag Highlighter updated to v${SCRIPT_VERSION}`);
+        } else {
+            showToast(`Pride Flag Highlighter installed (v${SCRIPT_VERSION})`);
+        }
+
+        try {
+            localStorage.setItem(LAST_VERSION_KEY, SCRIPT_VERSION);
+        } catch (_err) {
+            // ignore quota / private mode
+        }
+    }
+
+    /*
+     * ============================================================
      * START
      * ============================================================
      */
@@ -1843,6 +1970,7 @@
     function start() {
         buildUI();
         reprocessAll();
+        maybeShowVersionToast();
     }
 
     if (document.readyState === 'loading') {

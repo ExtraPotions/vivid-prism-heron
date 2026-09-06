@@ -5,7 +5,7 @@ Userscript by **expDARE** ([ExtraPotions/vivid-prism-heron](https://github.com/E
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.9** |
+| Version | **1.2.0** |
 | Author | expDARE |
 | Repo | [ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron) |
 | Namespace | `pride.flag-highlighter` |
@@ -30,15 +30,19 @@ Floating GitHub-icon button (bottom-right by default; auto-dodges other fixed/st
   enabled: true,
   style: 'gradient' | 'underline',
   showLabels: true,       // CSS pill tooltips (title/aria-label always set)
-  disabledFlags: []       // flag ids to skip, e.g. ['bear', 'leather']
+  disabledFlags: [],      // flag ids to skip, e.g. ['bear', 'leather']
+  excludedHosts: []       // hostnames with highlighting off, e.g. ['example.com']
 }
 ```
 
-- **Enable** — master on/off  
+- **Enable highlighting** — master on/off  
+- **Exclude this site** — adds `location.hostname` to `excludedHosts` (exact match). Excluded sites skip highlighting even when Enable is on; the FAB stays so you can turn the site back on  
 - **Style** — gradient text or underline  
 - **Hover labels** — CSS tooltips on/off  
 - **Flags** — per-identity checklist  
 - Escape / click-outside / **Close** dismisses; **Reset** restores defaults. Changes re-scan the page live.
+
+On first run (or after an update), a short status toast near the bottom announces install/update (`pride.flag-highlighter.lastVersion`).
 
 ## How it works
 
@@ -82,6 +86,12 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 | `README.md` | This document |
 
 ## Changelog
+
+### 1.2.0
+- Tighter FAB spacing (`FAB_GAP` 8, `FAB_MARGIN` 16); search still prefers left, then up
+- Visible FAB outline/ring so the button reads on any page background
+- Install/update toast via `SCRIPT_VERSION` + `pride.flag-highlighter.lastVersion`
+- Per-site exclusion (`excludedHosts`) with panel toggle; FAB remains when a site is excluded
 
 ### 1.1.9
 - Point `@icon` and FAB at `icon-64.png`
