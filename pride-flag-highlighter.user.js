@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.2.0
+// @version      1.2.1
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -937,7 +937,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.2.0';
+    const SCRIPT_VERSION = '1.2.1';
     const SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'pride.flag-highlighter.lastVersion';
     const UI_ROOT_ID = '__pride_flag_highlighter_ui';
@@ -1937,28 +1937,42 @@
     }
 
     function maybeShowVersionToast() {
+        // Only announce real upgrades, once per version. No toast on first
+        // install or on every page load.
         let previous = null;
         try {
             previous = localStorage.getItem(LAST_VERSION_KEY);
         } catch (_err) {
-            previous = null;
+            return;
         }
 
         if (previous === SCRIPT_VERSION) {
             return;
         }
 
-        if (previous) {
-            showToast(`Pride Flag Highlighter updated to v${SCRIPT_VERSION}`);
-        } else {
-            showToast(`Pride Flag Highlighter installed (v${SCRIPT_VERSION})`);
-        }
-
+        // Persist first so a failed toast never re-fires every navigation.
         try {
             localStorage.setItem(LAST_VERSION_KEY, SCRIPT_VERSION);
         } catch (_err) {
-            // ignore quota / private mode
+            return;
         }
+
+        // First run: record version quietly.
+        if (!previous) {
+            return;
+        }
+
+        const shownKey = `${LAST_VERSION_KEY}:shown:${SCRIPT_VERSION}`;
+        try {
+            if (sessionStorage.getItem(shownKey)) {
+                return;
+            }
+            sessionStorage.setItem(shownKey, '1');
+        } catch (_err) {
+            // sessionStorage optional; still show once after persist above
+        }
+
+        showToast(`Pride Flag Highlighter updated to v${SCRIPT_VERSION}`);
     }
 
     /*

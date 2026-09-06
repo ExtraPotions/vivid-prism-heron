@@ -17,7 +17,7 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** [v1.2.0](https://github.com/ExtraPotions/vivid-prism-heron/releases/tag/v1.2.0)
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** [v1.2.1](https://github.com/ExtraPotions/vivid-prism-heron/releases/tag/v1.2.1)
 
 | Stat | Value |
 |------|-------|
@@ -45,7 +45,7 @@ Tap the **32×32** Aa button (bottom-right; slides left of other corner widgets 
 - Hover labels on/off  
 - Per-flag checklist  
 
-Saved under `pride.flag-highlighter.settings`. A short toast appears after install or update.
+Saved under `pride.flag-highlighter.settings`. A short toast appears once after a version update (not on every page load).
 
 ## Customize flags
 
