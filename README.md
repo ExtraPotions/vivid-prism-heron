@@ -5,7 +5,7 @@ Userscript by **Pride** ([ExtraPotions/vivid-prism-heron](https://github.com/Ext
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.4** |
+| Version | **1.1.5** |
 | Author | Pride |
 | Repo | [ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron) |
 | Namespace | `pride.flag-highlighter` |
@@ -23,7 +23,7 @@ Userscript by **Pride** ([ExtraPotions/vivid-prism-heron](https://github.com/Ext
 
 ## Settings
 
-Floating button (bottom-right) opens the panel. Stored in `localStorage` as `pride.flag-highlighter.settings`:
+Floating GitHub-icon button (bottom-right by default; auto-dodges other fixed/sticky UI) opens the panel. Stored in `localStorage` as `pride.flag-highlighter.settings`:
 
 ```js
 {
@@ -70,7 +70,7 @@ Prefer documented stripe orders; skip niche flags when colours are unclear. Keep
 
 ## Icon
 
-Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscript `@icon` uses the 128px asset on `main`.
+Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscript `@icon` and the settings FAB use the 128px asset on `main`.
 
 ## Files
 
@@ -82,6 +82,10 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 | `README.md` | This document |
 
 ## Changelog
+
+### 1.1.5
+- Settings FAB shows the GitHub `icon-128.png` (circular clip, charcoal fallback) instead of a rainbow fill
+- Collision-aware FAB placement: auto-dodges other fixed/sticky UI (prefer up, then left)
 
 ### 1.1.4
 - README and project framing cleaned up for ExtraPotions / Pride
