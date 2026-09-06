@@ -1,12 +1,12 @@
 # Pride Flag Highlighter
 
-Userscript by **Pride** ([ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron)) that paints LGBTQ+ identity words with their pride-flag colours — gradient text or underlines, hover labels, and a settings panel.
+Userscript by **expDARE** ([ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron)) that paints LGBTQ+ identity words with their pride-flag colours — gradient text or underlines, hover labels, and a settings panel.
 
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.6** |
-| Author | Pride |
+| Version | **1.1.7** |
+| Author | expDARE |
 | Repo | [ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron) |
 | Namespace | `pride.flag-highlighter` |
 | Match | `*://*/*` |
@@ -83,6 +83,9 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 
 ## Changelog
 
+### 1.1.7
+- Set author to expDARE
+
 ### 1.1.6
 - Fill-crop icon assets (64 / 128 / 512) with no empty padding
 - FAB size 48×48, more gap from other fixed buttons
@@ -111,7 +114,7 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 
 ## License
 
-**CC BY-NC-SA 4.0** — Pride / ExtraPotions.
+**CC BY-NC-SA 4.0** — expDARE / ExtraPotions.
 
 This project includes adaptations of earlier CC BY-NC-SA material by Yeosangist; that notice is retained for license compliance only. Pride flag stripe colours follow commonly published community designs and belong to their respective creators and communities.
 
