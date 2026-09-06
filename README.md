@@ -14,8 +14,7 @@
   <a href="https://github.com/ExtraPotions/vivid-prism-heron/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/ExtraPotions/vivid-prism-heron?style=flat-square" /></a>
   <a href="https://github.com/ExtraPotions/vivid-prism-heron/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/ExtraPotions/vivid-prism-heron?style=flat-square" /></a>
   <a href="https://github.com/ExtraPotions/vivid-prism-heron/issues"><img alt="Issues" src="https://img.shields.io/github/issues/ExtraPotions/vivid-prism-heron?style=flat-square" /></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/ExtraPotions/vivid-prism-heron?style=flat-square" /></a>
-  <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
+  <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
 **Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** [v1.2.0](https://github.com/ExtraPotions/vivid-prism-heron/releases/tag/v1.2.0)
