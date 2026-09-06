@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.2
+// @version      1.1.3
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       Pride
 // @license      CC BY-NC-SA 4.0

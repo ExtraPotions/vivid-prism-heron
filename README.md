@@ -8,7 +8,7 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.2** |
+| Version | **1.1.3** |
 | Author | Pride |
 | Namespace | `pride.flag-highlighter` |
 | Match | `*://*/*` |
@@ -101,6 +101,9 @@ The demo page duplicates the same `FLAGS` + engine in a `<script>` block — aft
 Gradient **Aa** mark (rainbow text on charcoal). Source: `icon.png` (also `icon-128.png`). Wired via `@icon` to the raw GitHub URL on `main`.
 
 ## Changelog
+
+### 1.1.3
+- Fix icon aspect ratio (pad to square instead of stretching)
 
 ### 1.1.2
 - Ship script icon (gradient Aa) and `@icon` metadata
