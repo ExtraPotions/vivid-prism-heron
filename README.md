@@ -8,7 +8,7 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.0** |
+| Version | **1.1.1** |
 | Author | Pride |
 | Namespace | `pride.flag-highlighter` |
 | Match | `*://*/*` |
@@ -22,6 +22,10 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 3. Delete the template, then paste the full contents of `pride-flag-highlighter.user.js`, **or** use **Open** / drag-and-drop the `.user.js` file if your manager supports local install.
 4. Save. Visit any page — matching words should show flag-coloured text.
 5. Optional: open `demo.html` in a browser tab to preview highlights without an extension (the demo inlines the same engine, including the settings button).
+
+## What’s new in 1.1.1
+
+- **Code cleanup** — clearer helpers for settings normalization, highlight styling, DOM skipping / MutationObserver, and UI checklist building; no intentional user-facing behavior changes. `@icon` slot left as a TODO until the final asset is chosen.
 
 ## What’s new in 1.1.0
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.0
+// @version      1.1.1
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       Pride
 // @license      CC BY-NC-SA 4.0
@@ -9,6 +9,10 @@
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
+
+// TODO @icon: add final icon URL to the header when chosen, e.g.
+// // @icon  https://example.com/icon.png
+// (or a data:image/...;base64,... URL)
 
 /*
  * Based on Queer Flag Highlighter by Yeosangist (GreasyFork 594233).
@@ -928,49 +932,63 @@
     const WHOLE_WORDS_ONLY = true;
 
     const IGNORED_ELEMENTS = new Set([
-        'SCRIPT',
-        'STYLE',
-        'NOSCRIPT',
-        'TEXTAREA',
-        'INPUT',
-        'SELECT',
-        'OPTION',
-        'CODE',
-        'PRE',
-        'KBD',
-        'SAMP',
-        'SVG',
-        'MATH'
+        'SCRIPT', 'STYLE', 'NOSCRIPT',
+        'TEXTAREA', 'INPUT', 'SELECT', 'OPTION',
+        'CODE', 'PRE', 'KBD', 'SAMP',
+        'SVG', 'MATH'
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
     const SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const UI_ROOT_ID = '__pride_flag_highlighter_ui';
+    const UI_ROOT_SELECTOR = `#${UI_ROOT_ID}`;
+    const HIGHLIGHT_SELECTOR = `.${HIGHLIGHT_CLASS}`;
 
-    const DEFAULT_SETTINGS = {
+    const OBSERVER_OPTIONS = {
+        childList: true,
+        subtree: true,
+        characterData: true
+    };
+
+    const DEFAULT_SETTINGS = Object.freeze({
         enabled: true,
         style: 'gradient', // 'gradient' | 'underline'
         showLabels: true,
-        disabledFlags: []
-    };
+        disabledFlags: Object.freeze([])
+    });
+
+    function defaultSettings() {
+        return {
+            enabled: DEFAULT_SETTINGS.enabled,
+            style: DEFAULT_SETTINGS.style,
+            showLabels: DEFAULT_SETTINGS.showLabels,
+            disabledFlags: []
+        };
+    }
+
+    function normalizeSettings(raw) {
+        const source = raw && typeof raw === 'object' ? raw : {};
+        const disabled = Array.isArray(source.disabledFlags)
+            ? source.disabledFlags.filter(id => typeof id === 'string')
+            : [];
+
+        return {
+            enabled: source.enabled !== false,
+            style: source.style === 'underline' ? 'underline' : 'gradient',
+            showLabels: source.showLabels !== false,
+            disabledFlags: [...new Set(disabled)]
+        };
+    }
 
     function loadSettings() {
         try {
             const raw = localStorage.getItem(SETTINGS_KEY);
             if (!raw) {
-                return { ...DEFAULT_SETTINGS, disabledFlags: [] };
+                return defaultSettings();
             }
-            const parsed = JSON.parse(raw);
-            return {
-                enabled: parsed.enabled !== false,
-                style: parsed.style === 'underline' ? 'underline' : 'gradient',
-                showLabels: parsed.showLabels !== false,
-                disabledFlags: Array.isArray(parsed.disabledFlags)
-                    ? parsed.disabledFlags.filter(id => typeof id === 'string')
-                    : []
-            };
+            return normalizeSettings(JSON.parse(raw));
         } catch (err) {
-            return { ...DEFAULT_SETTINGS, disabledFlags: [] };
+            return defaultSettings();
         }
     }
 
@@ -982,207 +1000,185 @@
 
     /*
      * ============================================================
-     * CSS
+     * CSS / STYLE HELPERS
      * ============================================================
      */
+
+    function flagGradient(colors, angle = '90deg') {
+        return `linear-gradient(${angle}, ${colors.join(', ')})`;
+    }
 
     const styleEl = document.createElement('style');
 
     function cssText() {
-        const labelsOn = settings.showLabels ? '1' : '0';
+        // Hover tooltip visibility is gated by data-pfh-label="1" on spans;
+        // opacity is always 1 when that attribute matches.
         return `
-        .${HIGHLIGHT_CLASS} {
-            display: inline;
-            position: relative;
-            font: inherit !important;
-            cursor: inherit;
-        }
-
-        .${HIGHLIGHT_CLASS}[data-pfh-style="gradient"] {
-            background-image: var(--pfh-gradient) !important;
-            background-clip: text !important;
-            -webkit-background-clip: text !important;
-            color: transparent !important;
-            -webkit-text-fill-color: transparent !important;
-        }
-
-        .${HIGHLIGHT_CLASS}[data-pfh-style="underline"] {
-            color: inherit !important;
-            -webkit-text-fill-color: currentColor !important;
-            background-image: var(--pfh-gradient) !important;
-            background-size: 100% 3px !important;
-            background-repeat: no-repeat !important;
-            background-position: 0 100% !important;
-            padding-bottom: 2px !important;
-            box-decoration-break: clone;
-            -webkit-box-decoration-break: clone;
-        }
-
-        .${HIGHLIGHT_CLASS}[data-pfh-label="1"]::after {
-            content: attr(data-pfh-name);
-            position: absolute;
-            left: 50%;
-            top: calc(100% + 6px);
-            transform: translateX(-50%) translateY(2px);
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            z-index: 2147483646;
-            padding: 0.2rem 0.55rem;
-            border-radius: 999px;
-            font: 600 11px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            letter-spacing: 0.01em;
-            color: #fff;
-            background: #1a1a1a;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-            transition: opacity 0.12s ease, transform 0.12s ease;
-        }
-
-        .${HIGHLIGHT_CLASS}[data-pfh-label="1"]:hover::after,
-        .${HIGHLIGHT_CLASS}[data-pfh-label="1"]:focus-visible::after {
-            opacity: ${labelsOn};
-            transform: translateX(-50%) translateY(0);
-        }
-
-        #${UI_ROOT_ID} {
-            all: initial;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif;
-        }
-
-        #${UI_ROOT_ID} * {
-            box-sizing: border-box;
-        }
-
-        #${UI_ROOT_ID} .pfh-fab {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            z-index: 2147483647;
-            width: 42px;
-            height: 42px;
-            border: none;
-            border-radius: 999px;
-            cursor: pointer;
-            background-image: linear-gradient(135deg, #E40303, #FF8C00, #FFED00, #008026, #004DFF, #750787);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.28);
-            opacity: 0.72;
-            transition: opacity 0.15s ease, transform 0.15s ease;
-        }
-
-        #${UI_ROOT_ID} .pfh-fab:hover,
-        #${UI_ROOT_ID} .pfh-fab:focus-visible {
-            opacity: 1;
-            transform: scale(1.05);
-            outline: none;
-        }
-
-        #${UI_ROOT_ID} .pfh-panel {
-            position: fixed;
-            right: 16px;
-            bottom: 68px;
-            z-index: 2147483647;
-            width: min(320px, calc(100vw - 24px));
-            max-height: min(70vh, 520px);
-            display: none;
-            flex-direction: column;
-            gap: 0.65rem;
-            padding: 0.9rem 0.95rem 0.85rem;
-            border-radius: 14px;
-            background: #12141a;
-            color: #f2f4f8;
-            border: 1px solid rgba(255,255,255,0.12);
-            box-shadow: 0 16px 40px rgba(0,0,0,0.4);
-        }
-
-        #${UI_ROOT_ID} .pfh-panel[data-open="1"] {
-            display: flex;
-        }
-
-        #${UI_ROOT_ID} .pfh-panel h2 {
-            margin: 0;
-            font-size: 0.95rem;
-            font-weight: 700;
-        }
-
-        #${UI_ROOT_ID} .pfh-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            font-size: 0.86rem;
-        }
-
-        #${UI_ROOT_ID} .pfh-row label {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            cursor: pointer;
-        }
-
-        #${UI_ROOT_ID} select,
-        #${UI_ROOT_ID} button.pfh-btn {
-            font: inherit;
-            font-size: 0.82rem;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.18);
-            background: #1c2230;
-            color: #f2f4f8;
-            padding: 0.35rem 0.55rem;
-        }
-
-        #${UI_ROOT_ID} button.pfh-btn {
-            cursor: pointer;
-        }
-
-        #${UI_ROOT_ID} button.pfh-btn:hover,
-        #${UI_ROOT_ID} button.pfh-btn:focus-visible {
-            background: #273044;
-            outline: none;
-        }
-
-        #${UI_ROOT_ID} .pfh-flags {
-            overflow: auto;
-            max-height: 240px;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 0.45rem 0.55rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.28rem;
-            background: #0d0f14;
-        }
-
-        #${UI_ROOT_ID} .pfh-flags label {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 0.8rem;
-            cursor: pointer;
-            padding: 0.12rem 0;
-        }
-
-        #${UI_ROOT_ID} .pfh-actions {
-            display: flex;
-            gap: 0.45rem;
-            justify-content: flex-end;
-        }
-
-        #${UI_ROOT_ID} .pfh-swatch {
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
-            flex: 0 0 auto;
-            background-image: var(--pfh-swatch);
-            border: 1px solid rgba(255,255,255,0.25);
-        }
-        `;
+.${HIGHLIGHT_CLASS} {
+  display: inline;
+  position: relative;
+  font: inherit !important;
+  cursor: inherit;
+}
+.${HIGHLIGHT_CLASS}[data-pfh-style="gradient"] {
+  background-image: var(--pfh-gradient) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.${HIGHLIGHT_CLASS}[data-pfh-style="underline"] {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  background-image: var(--pfh-gradient) !important;
+  background-size: 100% 3px !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 100% !important;
+  padding-bottom: 2px !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"]::after {
+  content: attr(data-pfh-name);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 6px);
+  transform: translateX(-50%) translateY(2px);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 2147483646;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font: 600 11px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: #1a1a1a;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"]:hover::after,
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#${UI_ROOT_ID} {
+  all: initial;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif;
+}
+#${UI_ROOT_ID} * { box-sizing: border-box; }
+#${UI_ROOT_ID} .pfh-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background-image: linear-gradient(135deg, #E40303, #FF8C00, #FFED00, #008026, #004DFF, #750787);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+  opacity: 0.72;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+#${UI_ROOT_ID} .pfh-fab:hover,
+#${UI_ROOT_ID} .pfh-fab:focus-visible {
+  opacity: 1;
+  transform: scale(1.05);
+  outline: none;
+}
+#${UI_ROOT_ID} .pfh-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 68px;
+  z-index: 2147483647;
+  width: min(320px, calc(100vw - 24px));
+  max-height: min(70vh, 520px);
+  display: none;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.9rem 0.95rem 0.85rem;
+  border-radius: 14px;
+  background: #12141a;
+  color: #f2f4f8;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+}
+#${UI_ROOT_ID} .pfh-panel[data-open="1"] { display: flex; }
+#${UI_ROOT_ID} .pfh-panel h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+#${UI_ROOT_ID} .pfh-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.86rem;
+}
+#${UI_ROOT_ID} .pfh-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+#${UI_ROOT_ID} select,
+#${UI_ROOT_ID} button.pfh-btn {
+  font: inherit;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #1c2230;
+  color: #f2f4f8;
+  padding: 0.35rem 0.55rem;
+}
+#${UI_ROOT_ID} button.pfh-btn { cursor: pointer; }
+#${UI_ROOT_ID} button.pfh-btn:hover,
+#${UI_ROOT_ID} button.pfh-btn:focus-visible {
+  background: #273044;
+  outline: none;
+}
+#${UI_ROOT_ID} .pfh-flags {
+  overflow: auto;
+  max-height: 240px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  background: #0d0f14;
+}
+#${UI_ROOT_ID} .pfh-flags label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.12rem 0;
+}
+#${UI_ROOT_ID} .pfh-actions {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+#${UI_ROOT_ID} .pfh-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  background-image: var(--pfh-swatch);
+  border: 1px solid rgba(255,255,255,0.25);
+}
+`;
     }
 
     function installStyle() {
         styleEl.textContent = cssText();
-        const parent = document.head || document.documentElement;
         if (!styleEl.isConnected) {
-            parent.appendChild(styleEl);
+            (document.head || document.documentElement).appendChild(styleEl);
         }
     }
 
@@ -1223,18 +1219,11 @@
             return;
         }
 
-        let boundaryStart = '';
-        let boundaryEnd = '';
-
-        if (WHOLE_WORDS_ONLY) {
-            boundaryStart = '(?<![\\p{L}\\p{N}_-])';
-            boundaryEnd = '(?![\\p{L}\\p{N}_-])';
-        }
+        const boundaryStart = WHOLE_WORDS_ONLY ? '(?<![\\p{L}\\p{N}_-])' : '';
+        const boundaryEnd = WHOLE_WORDS_ONLY ? '(?![\\p{L}\\p{N}_-])' : '';
 
         regex = new RegExp(
-            boundaryStart +
-            `(${words.join('|')})` +
-            boundaryEnd,
+            `${boundaryStart}(${words.join('|')})${boundaryEnd}`,
             CASE_INSENSITIVE ? 'giu' : 'gu'
         );
     }
@@ -1247,9 +1236,18 @@
      * ============================================================
      */
 
+    function applyHighlightStyle(span, flag) {
+        span.title = flag.label;
+        span.setAttribute('aria-label', flag.label);
+        span.dataset.pfhName = flag.label;
+        span.dataset.pfhStyle = settings.style;
+        span.dataset.pfhLabel = settings.showLabels ? '1' : '0';
+        span.dataset.pfhId = flag.id;
+        span.style.setProperty('--pfh-gradient', flagGradient(flag.colors));
+    }
+
     function makeHighlight(text) {
         const flag = wordToFlag.get(text.toLowerCase());
-
         if (!flag) {
             return document.createTextNode(text);
         }
@@ -1257,26 +1255,22 @@
         const span = document.createElement('span');
         span.className = HIGHLIGHT_CLASS;
         span.textContent = text;
-        span.title = flag.label;
-        span.setAttribute('aria-label', flag.label);
-        span.dataset.pfhName = flag.label;
-        span.dataset.pfhStyle = settings.style;
-        span.dataset.pfhLabel = settings.showLabels ? '1' : '0';
-        span.dataset.pfhId = flag.id;
-
-        span.style.setProperty(
-            '--pfh-gradient',
-            `linear-gradient(90deg, ${flag.colors.join(', ')})`
-        );
-
+        applyHighlightStyle(span, flag);
         return span;
     }
 
     /*
      * ============================================================
-     * PROCESS TEXT NODE
+     * PROCESS TEXT / DOM
      * ============================================================
      */
+
+    function isUiNode(node) {
+        if (!node || node.nodeType !== Node.ELEMENT_NODE) {
+            return false;
+        }
+        return node.id === UI_ROOT_ID || Boolean(node.closest?.(UI_ROOT_SELECTOR));
+    }
 
     function isIgnoredContext(el) {
         if (!el) {
@@ -1285,38 +1279,37 @@
         if (IGNORED_ELEMENTS.has(el.tagName) || el.isContentEditable) {
             return true;
         }
-        if (el.id === UI_ROOT_ID || el.closest(`#${UI_ROOT_ID}`)) {
-            return true;
-        }
-        return false;
+        return isUiNode(el);
+    }
+
+    function shouldSkipParent(parent) {
+        return isIgnoredContext(parent) || Boolean(parent.closest(HIGHLIGHT_SELECTOR));
+    }
+
+    function highlightingActive() {
+        return settings.enabled && Boolean(regex);
     }
 
     function processTextNode(node) {
-        if (!settings.enabled || !regex) {
-            return;
-        }
-
-        if (!node || !node.parentElement) {
+        if (!highlightingActive() || !node?.parentElement) {
             return;
         }
 
         const parent = node.parentElement;
-
-        if (isIgnoredContext(parent)) {
-            return;
-        }
-
-        if (parent.closest(`.${HIGHLIGHT_CLASS}`)) {
+        if (shouldSkipParent(parent)) {
             return;
         }
 
         const text = node.nodeValue;
-
-        if (!text || !regex.test(text)) {
-            regex.lastIndex = 0;
+        if (!text) {
             return;
         }
 
+        regex.lastIndex = 0;
+        if (!regex.test(text)) {
+            regex.lastIndex = 0;
+            return;
+        }
         regex.lastIndex = 0;
 
         const fragment = document.createDocumentFragment();
@@ -1328,9 +1321,7 @@
             const end = start + match[0].length;
 
             if (start > lastIndex) {
-                fragment.appendChild(
-                    document.createTextNode(text.slice(lastIndex, start))
-                );
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
             }
 
             fragment.appendChild(makeHighlight(match[0]));
@@ -1338,65 +1329,40 @@
         }
 
         if (lastIndex < text.length) {
-            fragment.appendChild(
-                document.createTextNode(text.slice(lastIndex))
-            );
+            fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
         }
 
-        node.parentNode.replaceChild(fragment, node);
+        parent.replaceChild(fragment, node);
         regex.lastIndex = 0;
     }
 
-    /*
-     * ============================================================
-     * WALK A SUBTREE
-     * ============================================================
-     */
+    function acceptTextNode(node) {
+        const parent = node.parentElement;
+        if (!parent || shouldSkipParent(parent)) {
+            return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+    }
 
     function processElement(element) {
-        if (!settings.enabled || !regex) {
+        if (!highlightingActive()) {
             return;
         }
-
         if (!element || element.nodeType !== Node.ELEMENT_NODE) {
             return;
         }
-
-        if (isIgnoredContext(element)) {
-            return;
-        }
-
-        if (element.classList.contains(HIGHLIGHT_CLASS)) {
+        if (isIgnoredContext(element) || element.classList.contains(HIGHLIGHT_CLASS)) {
             return;
         }
 
         const walker = document.createTreeWalker(
             element,
             NodeFilter.SHOW_TEXT,
-            {
-                acceptNode(node) {
-                    const parent = node.parentElement;
-
-                    if (!parent) {
-                        return NodeFilter.FILTER_REJECT;
-                    }
-
-                    if (isIgnoredContext(parent)) {
-                        return NodeFilter.FILTER_REJECT;
-                    }
-
-                    if (parent.closest(`.${HIGHLIGHT_CLASS}`)) {
-                        return NodeFilter.FILTER_REJECT;
-                    }
-
-                    return NodeFilter.FILTER_ACCEPT;
-                }
-            }
+            { acceptNode: acceptTextNode }
         );
 
         const nodes = [];
         let node;
-
         while ((node = walker.nextNode())) {
             nodes.push(node);
         }
@@ -1414,30 +1380,29 @@
 
     function clearHighlights(root) {
         const scope = root || document;
-        const spans = scope.querySelectorAll
-            ? scope.querySelectorAll(`.${HIGHLIGHT_CLASS}`)
-            : [];
+        if (!scope.querySelectorAll) {
+            return;
+        }
 
-        for (const span of [...spans]) {
-            const text = document.createTextNode(span.textContent || '');
+        for (const span of [...scope.querySelectorAll(HIGHLIGHT_SELECTOR)]) {
             const parent = span.parentNode;
             if (!parent) {
                 continue;
             }
-            parent.replaceChild(text, span);
+            parent.replaceChild(document.createTextNode(span.textContent || ''), span);
             parent.normalize();
         }
     }
 
     const observer = new MutationObserver(mutations => {
-        if (!settings.enabled || !regex) {
+        if (!highlightingActive()) {
             return;
         }
 
         for (const mutation of mutations) {
             for (const addedNode of mutation.addedNodes) {
                 if (addedNode.nodeType === Node.ELEMENT_NODE) {
-                    if (addedNode.id === UI_ROOT_ID || (addedNode.closest && addedNode.closest(`#${UI_ROOT_ID}`))) {
+                    if (isUiNode(addedNode)) {
                         continue;
                     }
                     processElement(addedNode);
@@ -1452,6 +1417,13 @@
         }
     });
 
+    function startObserving() {
+        if (!document.body) {
+            return;
+        }
+        observer.observe(document.body, OBSERVER_OPTIONS);
+    }
+
     function reprocessAll() {
         observer.disconnect();
         if (document.body) {
@@ -1462,13 +1434,7 @@
         if (settings.enabled) {
             processPage();
         }
-        if (document.body) {
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-                characterData: true
-            });
-        }
+        startObserving();
     }
 
     /*
@@ -1477,15 +1443,12 @@
      * ============================================================
      */
 
+    let panelEl = null;
+    let fabEl = null;
+    let uiRoot = null;
+
     function applySettings(next, { persist = true } = {}) {
-        settings = {
-            enabled: next.enabled !== false,
-            style: next.style === 'underline' ? 'underline' : 'gradient',
-            showLabels: next.showLabels !== false,
-            disabledFlags: Array.isArray(next.disabledFlags)
-                ? [...new Set(next.disabledFlags)]
-                : []
-        };
+        settings = normalizeSettings(next);
 
         if (persist) {
             saveSettings(settings);
@@ -1494,10 +1457,6 @@
         reprocessAll();
         syncPanelControls();
     }
-
-    let panelEl = null;
-    let fabEl = null;
-    let uiRoot = null;
 
     function syncPanelControls() {
         if (!panelEl) {
@@ -1515,7 +1474,7 @@
     }
 
     function setPanelOpen(open) {
-        if (!panelEl) {
+        if (!panelEl || !fabEl) {
             return;
         }
         panelEl.dataset.open = open ? '1' : '0';
@@ -1536,6 +1495,23 @@
             showLabels: panelEl.querySelector('#pfh-labels').checked,
             disabledFlags
         };
+    }
+
+    function buildFlagChecklistHtml() {
+        return FLAGS
+            .slice()
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map(flag => {
+                const swatch = flagGradient(flag.colors);
+                return (
+                    `<label>` +
+                    `<input class="pfh-flag-toggle" type="checkbox" value="${flag.id}" checked />` +
+                    `<span class="pfh-swatch" style="--pfh-swatch:${swatch}"></span>` +
+                    `<span>${flag.label}</span>` +
+                    `</label>`
+                );
+            })
+            .join('');
     }
 
     function buildUI() {
@@ -1561,21 +1537,6 @@
         panelEl.setAttribute('role', 'dialog');
         panelEl.setAttribute('aria-label', 'Pride Flag Highlighter settings');
 
-        const flagChecks = FLAGS
-            .slice()
-            .sort((a, b) => a.label.localeCompare(b.label))
-            .map(flag => {
-                const swatch = `linear-gradient(90deg, ${flag.colors.join(', ')})`;
-                return (
-                    `<label>` +
-                    `<input class="pfh-flag-toggle" type="checkbox" value="${flag.id}" checked />` +
-                    `<span class="pfh-swatch" style="--pfh-swatch:${swatch}"></span>` +
-                    `<span>${flag.label}</span>` +
-                    `</label>`
-                );
-            })
-            .join('');
-
         panelEl.innerHTML = `
             <h2>Pride Flag Highlighter</h2>
             <div class="pfh-row">
@@ -1593,7 +1554,7 @@
             </div>
             <div>
                 <div class="pfh-row" style="margin-bottom:0.35rem"><span>Flags</span></div>
-                <div class="pfh-flags">${flagChecks}</div>
+                <div class="pfh-flags">${buildFlagChecklistHtml()}</div>
             </div>
             <div class="pfh-actions">
                 <button type="button" class="pfh-btn" id="pfh-reset">Reset defaults</button>
@@ -1614,7 +1575,7 @@
 
         panelEl.querySelector('#pfh-close').addEventListener('click', () => setPanelOpen(false));
         panelEl.querySelector('#pfh-reset').addEventListener('click', () => {
-            applySettings({ ...DEFAULT_SETTINGS, disabledFlags: [] });
+            applySettings(defaultSettings());
         });
 
         const onChange = () => applySettings(readPanelSettings());
