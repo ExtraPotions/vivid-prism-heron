@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.7
+// @version      1.1.8
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -1070,8 +1070,8 @@
   right: 16px;
   bottom: 16px;
   z-index: 2147483647;
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   overflow: hidden;
   border: none;
@@ -1522,7 +1522,7 @@
             .join('');
     }
 
-    const FAB_SIZE = 48;
+    const FAB_SIZE = 32;
     const FAB_GAP = 16;
     const FAB_MARGIN = 20;
     const FAB_SEARCH_CAP = 400;
@@ -1615,8 +1615,9 @@
         let found = false;
 
         // Prefer up first (increase bottom), then left (increase right).
-        for (let rightOff = 0; rightOff <= FAB_SEARCH_CAP && !found; rightOff += step) {
-            for (let bottomOff = 0; bottomOff <= FAB_SEARCH_CAP; bottomOff += step) {
+        // Prefer sitting to the left of other corner widgets; only stack upward if needed.
+        for (let bottomOff = 0; bottomOff <= FAB_SEARCH_CAP && !found; bottomOff += step) {
+            for (let rightOff = 0; rightOff <= FAB_SEARCH_CAP; rightOff += step) {
                 const right = FAB_MARGIN + rightOff;
                 const bottom = FAB_MARGIN + bottomOff;
                 const target = fabTargetRect(right, bottom);

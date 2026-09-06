@@ -5,7 +5,7 @@ Userscript by **expDARE** ([ExtraPotions/vivid-prism-heron](https://github.com/E
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.7** |
+| Version | **1.1.8** |
 | Author | expDARE |
 | Repo | [ExtraPotions/vivid-prism-heron](https://github.com/ExtraPotions/vivid-prism-heron) |
 | Namespace | `pride.flag-highlighter` |
@@ -82,6 +82,9 @@ Gradient **Aa** on charcoal (`icon.png`, `icon-128.png`, `icon-64.png`). Userscr
 | `README.md` | This document |
 
 ## Changelog
+
+### 1.1.8
+- FAB is 32×32 and prefers placing to the left of other corner buttons
 
 ### 1.1.7
 - Set author to expDARE
