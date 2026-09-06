@@ -8,7 +8,7 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 | | |
 |---|---|
 | Name | Pride Flag Highlighter |
-| Version | **1.1.1** |
+| Version | **1.1.2** |
 | Author | Pride |
 | Namespace | `pride.flag-highlighter` |
 | Match | `*://*/*` |
@@ -25,7 +25,7 @@ License: **CC BY-NC-SA 4.0** (same family as the original).
 
 ## What’s new in 1.1.1
 
-- **Code cleanup** — clearer helpers for settings normalization, highlight styling, DOM skipping / MutationObserver, and UI checklist building; no intentional user-facing behavior changes. `@icon` slot left as a TODO until the final asset is chosen.
+- **Code cleanup** — clearer helpers for settings normalization, highlight styling, DOM skipping / MutationObserver, and UI checklist building; no intentional user-facing behavior changes.
 
 ## What’s new in 1.1.0
 
@@ -96,11 +96,22 @@ Edit the `FLAGS` array near the top of `pride-flag-highlighter.user.js`:
 
 The demo page duplicates the same `FLAGS` + engine in a `<script>` block — after editing the userscript, refresh that inline copy in `demo.html` (or regenerate it) if you want the demo to stay in sync.
 
+## Icon
+
+Gradient **Aa** mark (rainbow text on charcoal). Source: `icon.png` (also `icon-128.png`). Wired via `@icon` to the raw GitHub URL on `main`.
+
+## Changelog
+
+### 1.1.2
+- Ship script icon (gradient Aa) and `@icon` metadata
+
+### 1.1.1
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `pride-flag-highlighter.user.js` | Installable userscript |
+| `icon.png` / `icon-128.png` | Script / listing icon (gradient Aa) |
 | `demo.html` | Local preview (engine inlined; no extension needed) |
 | `README.md` | This document |
 

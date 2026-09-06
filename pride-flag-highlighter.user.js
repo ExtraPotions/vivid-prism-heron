@@ -1,18 +1,15 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.1
+// @version      1.1.2
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       Pride
 // @license      CC BY-NC-SA 4.0
 // @match        *://*/*
 // @run-at       document-start
 // @grant        none
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/icon-128.png
 // ==/UserScript==
-
-// TODO @icon: add final icon URL to the header when chosen, e.g.
-// // @icon  https://example.com/icon.png
-// (or a data:image/...;base64,... URL)
 
 /*
  * Based on Queer Flag Highlighter by Yeosangist (GreasyFork 594233).
