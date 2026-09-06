@@ -1,0 +1,1098 @@
+// ==UserScript==
+// @name         Pride Flag Highlighter
+// @namespace    pride.flag-highlighter
+// @version      1.0.0
+// @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
+// @author       Pride
+// @license      CC BY-NC-SA 4.0
+// @match        *://*/*
+// @run-at       document-start
+// @grant        none
+// ==/UserScript==
+
+/*
+ * Based on Queer Flag Highlighter by Yeosangist (GreasyFork 594233).
+ * Licensed under CC BY-NC-SA 4.0.
+ */
+
+(() => {
+    'use strict';
+
+    /*
+     * ============================================================
+     * WORDS / FLAGS
+     * ============================================================
+     *
+     * Add, remove, or modify entries here.
+     *
+     * Each entry has:
+     *   words: words to match
+     *   colors: flag colours, from left to right (stripe order)
+     *
+     * The script uses a linear gradient for multi-colour flags.
+     * Bare "poly" is omitted (too ambiguous); use polysexual /
+     * polyamorous / polyam instead.
+     */
+
+    const FLAGS = [
+
+        // Rainbow / LGBTQ+ (Gilbert Baker six-stripe)
+        {
+            words: ['queer', 'lgbtq', 'lgbtq+', 'lgbt', 'lgbt+', 'lgbtqia', 'lgbtqia+', 'pride'],
+            colors: [
+                '#E40303',
+                '#FF8C00',
+                '#FFED00',
+                '#008026',
+                '#004DFF',
+                '#750787'
+            ]
+        },
+
+        // Progress Pride (Daniel Quasar; chevron approximated L→R)
+        {
+            words: ['progress pride', 'progresspride', 'inclusive pride'],
+            colors: [
+                '#000000',
+                '#613915',
+                '#74D7EE',
+                '#FFAFC8',
+                '#FFFFFF',
+                '#E40303',
+                '#FF8C00',
+                '#FFED00',
+                '#008026',
+                '#004DFF',
+                '#750787'
+            ]
+        },
+
+        // Philadelphia Pride / More Color More Pride
+        {
+            words: ['philadelphia pride', 'philly pride', 'more color more pride'],
+            colors: [
+                '#000000',
+                '#784F17',
+                '#E40303',
+                '#FF8C00',
+                '#FFED00',
+                '#008026',
+                '#004DFF',
+                '#750787'
+            ]
+        },
+
+        // Gay men
+        {
+            words: ['gay', 'achillean', 'mlm'],
+            colors: [
+                '#078D70',
+                '#26CEAA',
+                '#98E8C1',
+                '#DDDDDD',
+                '#7BADE2',
+                '#5049CC',
+                '#3D1A78'
+            ]
+        },
+
+        // Lesbian
+        {
+            words: ['lesbian', 'wlw'],
+            colors: [
+                '#D52D00',
+                '#EF7627',
+                '#FF9A56',
+                '#DDDDDD',
+                '#D162A4',
+                '#B55690',
+                '#A30262'
+            ]
+        },
+
+        // Bisexual
+        {
+            words: ['bisexual', 'bi'],
+            colors: [
+                '#D60270',
+                '#D60270',
+                '#9B4F96',
+                '#0038A8',
+                '#0038A8'
+            ]
+        },
+
+        // Pansexual
+        {
+            words: ['pansexual', 'pan'],
+            colors: [
+                '#FF218C',
+                '#FFD800',
+                '#21B1FF'
+            ]
+        },
+
+        // Transgender
+        {
+            words: ['transgender', 'trans'],
+            colors: [
+                '#5BCEFA',
+                '#F5A9B8',
+                '#DDDDDD',
+                '#F5A9B8',
+                '#5BCEFA'
+            ]
+        },
+
+        // Transmasculine / transmasc
+        {
+            words: ['transmasculine', 'transmasc'],
+            colors: [
+                '#FF8ABD',
+                '#CDF5FE',
+                '#9AEBFF',
+                '#74DFFF',
+                '#9AEBFF',
+                '#CDF5FE',
+                '#FF8ABD'
+            ]
+        },
+
+        // Transfeminine / transfem
+        {
+            words: ['transfeminine', 'transfem', 'transfemme'],
+            colors: [
+                '#73DEFF',
+                '#FFE0ED',
+                '#FFB5D5',
+                '#FF8CBE',
+                '#FFB5D5',
+                '#FFE0ED',
+                '#73DEFF'
+            ]
+        },
+
+        // Non-binary
+        {
+            words: ['nonbinary', 'non-binary', 'enby'],
+            colors: [
+                '#FCF434',
+                '#DDDDDD',
+                '#9C59D1',
+                '#2C2C2C'
+            ]
+        },
+
+        // Asexual
+        {
+            words: ['asexual', 'ace'],
+            colors: [
+                '#000000',
+                '#A3A3A3',
+                '#DDDDDD',
+                '#800080'
+            ]
+        },
+
+        // Aromantic
+        {
+            words: ['aromantic', 'aro'],
+            colors: [
+                '#3DA542',
+                '#A7D379',
+                '#DDDDDD',
+                '#A9A9A9',
+                '#000000'
+            ]
+        },
+
+        // AroAce
+        {
+            words: ['aroace', 'aromantic asexual', 'aromantic-asexual', 'aromantic/asexual'],
+            colors: [
+                '#DD8A00',
+                '#E9CC07',
+                '#DDDDDD',
+                '#65B0DD',
+                '#213C57'
+            ]
+        },
+
+        // Oriented aroace
+        {
+            words: ['oriented aroace', 'oriented-aroace', 'orientedaroace'],
+            colors: [
+                '#B2B2B2',
+                '#D8D8D8',
+                '#FFFFFF',
+                '#A8D0E6',
+                '#3D7EA6'
+            ]
+        },
+
+        // Acespec (asexual spectrum umbrella)
+        {
+            words: ['acespec', 'ace-spec', 'ace spectrum', 'asexual spectrum'],
+            colors: [
+                '#000000',
+                '#A3A3A3',
+                '#FFFFFF',
+                '#CB7FCC',
+                '#800080'
+            ]
+        },
+
+        // Arospec (aromantic spectrum umbrella)
+        {
+            words: ['arospec', 'aro-spec', 'aro spectrum', 'aromantic spectrum'],
+            colors: [
+                '#3DA542',
+                '#A7D379',
+                '#FFFFFF',
+                '#E89EC8',
+                '#C94C9C'
+            ]
+        },
+
+        // Demisexual
+        {
+            words: ['demisexual', 'demi'],
+            colors: [
+                '#000000',
+                '#DDDDDD',
+                '#6E0070',
+                '#D2D2D2'
+            ]
+        },
+
+        // Demiromantic
+        {
+            words: ['demiromantic'],
+            colors: [
+                '#39A94A',
+                '#B5DF9B',
+                '#DDDDDD',
+                '#A9A9A9',
+                '#000000'
+            ]
+        },
+
+        // Graysexual / greysexual
+        {
+            words: ['graysexual', 'greysexual', 'gray-asexual', 'grey-asexual'],
+            colors: [
+                '#740195',
+                '#B2B2B2',
+                '#FFFFFF',
+                '#B2B2B2',
+                '#740195'
+            ]
+        },
+
+        // Grayromantic / greyromantic
+        {
+            words: ['grayromantic', 'greyromantic', 'gray-aromantic', 'grey-aromantic'],
+            colors: [
+                '#087D16',
+                '#B2B2B2',
+                '#FFFFFF',
+                '#B2B2B2',
+                '#087D16'
+            ]
+        },
+
+        // Cupiosexual
+        {
+            words: ['cupiosexual', 'cupio'],
+            colors: [
+                '#FCA9C4',
+                '#FFFFFF',
+                '#CBCBCB',
+                '#161616'
+            ]
+        },
+
+        // Fraysexual
+        {
+            words: ['fraysexual', 'fray'],
+            colors: [
+                '#6B8EC2',
+                '#94CEF1',
+                '#FFFFFF',
+                '#636363'
+            ]
+        },
+
+        // Lithromantic / akoiromantic
+        {
+            words: ['lithromantic', 'akoiromantic', 'lithro', 'akoi'],
+            colors: [
+                '#FF2B66',
+                '#FF9146',
+                '#FFF152',
+                '#FFFFFF',
+                '#000000'
+            ]
+        },
+
+        // Genderfluid
+        {
+            words: ['genderfluid', 'gender-fluid'],
+            colors: [
+                '#FF75A2',
+                '#DDDDDD',
+                '#BE18D6',
+                '#000000',
+                '#333EBD'
+            ]
+        },
+
+        // Genderflux
+        {
+            words: ['genderflux'],
+            colors: [
+                '#F47694',
+                '#F2A3B9',
+                '#CECECE',
+                '#7CE0F7',
+                '#3ECDF9',
+                '#FFF48E'
+            ]
+        },
+
+        // Genderqueer
+        {
+            words: ['genderqueer', 'gender-queer'],
+            colors: [
+                '#B57EDC',
+                '#DDDDDD',
+                '#4A8123'
+            ]
+        },
+
+        // Agender
+        {
+            words: ['agender'],
+            colors: [
+                '#000000',
+                '#B9B9B9',
+                '#DDDDDD',
+                '#B8F483',
+                '#DDDDDD',
+                '#B9B9B9',
+                '#000000'
+            ]
+        },
+
+        // Bigender
+        {
+            words: ['bigender'],
+            colors: [
+                '#C479D9',
+                '#EDA5CD',
+                '#D8D8D8',
+                '#A4E8D8',
+                '#6ADEC9'
+            ]
+        },
+
+        // Pangender
+        {
+            words: ['pangender'],
+            colors: [
+                '#fdf48d',
+                '#f3b79c',
+                '#fac3ef',
+                '#DDDDDD'
+            ]
+        },
+
+        // Demigirl
+        {
+            words: ['demigirl'],
+            colors: [
+                '#7F7F7F',
+                '#C4C4C4',
+                '#FFAEC9',
+                '#FFFFFF',
+                '#FFAEC9',
+                '#C4C4C4',
+                '#7F7F7F'
+            ]
+        },
+
+        // Demiboy
+        {
+            words: ['demiboy'],
+            colors: [
+                '#7F7F7F',
+                '#C4C4C4',
+                '#9AD9EB',
+                '#FFFFFF',
+                '#9AD9EB',
+                '#C4C4C4',
+                '#7F7F7F'
+            ]
+        },
+
+        // Demigender
+        {
+            words: ['demigender'],
+            colors: [
+                '#7F7F7F',
+                '#C4C4C4',
+                '#FBFF74',
+                '#FFFFFF',
+                '#FBFF74',
+                '#C4C4C4',
+                '#7F7F7F'
+            ]
+        },
+
+        // Maverique
+        {
+            words: ['maverique'],
+            colors: [
+                '#FFF344',
+                '#FFFFFF',
+                '#F49622'
+            ]
+        },
+
+        // Androgyne
+        {
+            words: ['androgyne', 'androgynous'],
+            colors: [
+                '#FE76A2',
+                '#9832CC',
+                '#00B8E7'
+            ]
+        },
+
+        // Neutrois
+        {
+            words: ['neutrois'],
+            colors: [
+                '#FFFFFF',
+                '#1F9E49',
+                '#000000',
+                '#1F9E49',
+                '#FFFFFF'
+            ]
+        },
+
+        // Trigender
+        {
+            words: ['trigender'],
+            colors: [
+                '#FF95C5',
+                '#9588C8',
+                '#6DE08D',
+                '#9588C8',
+                '#FF95C5'
+            ]
+        },
+
+        // Polygender
+        {
+            words: ['polygender'],
+            colors: [
+                '#000000',
+                '#B8B8B8',
+                '#ED698A',
+                '#F8E68F',
+                '#75D7EF',
+                '#698AEC'
+            ]
+        },
+
+        // Genderfae (fluidity without masculine genders)
+        {
+            words: ['genderfae', 'genderdoe'],
+            colors: [
+                '#97C8A4',
+                '#C3DEAE',
+                '#F9FACB',
+                '#FFFFFF',
+                '#F9B8C5',
+                '#D595E4',
+                '#B18AE5'
+            ]
+        },
+
+        // Genderfaun (fluidity without feminine genders)
+        {
+            words: ['genderfaun', 'genderfawn'],
+            colors: [
+                '#FCD6A4',
+                '#FFF09B',
+                '#FAF9CD',
+                '#FFFFFF',
+                '#8BC8EF',
+                '#9F9DE0',
+                '#A07CC7'
+            ]
+        },
+
+        // Genderflor (fluidity without binary genders)
+        {
+            words: ['genderflor'],
+            colors: [
+                '#A5D6A7',
+                '#C8F0C0',
+                '#F2F2C8',
+                '#FFFFFF',
+                '#F2C8F0',
+                '#E0A8E8',
+                '#C890D0'
+            ]
+        },
+
+        // Omnisexual
+        {
+            words: ['omnisexual', 'omni'],
+            colors: [
+                '#FF9A4D',
+                '#FF53BF',
+                '#DDDDDD',
+                '#625FFF',
+                '#1F9BFF'
+            ]
+        },
+
+        // Polysexual (bare "poly" omitted — too ambiguous)
+        {
+            words: ['polysexual'],
+            colors: [
+                '#F61CB9',
+                '#07D569',
+                '#1C92F5'
+            ]
+        },
+
+        // Polyamorous (2022 PolyamProud / Howell redesign stripes)
+        {
+            words: ['polyamorous', 'polyam', 'polyamory'],
+            colors: [
+                '#009FE3',
+                '#E50051',
+                '#340C46'
+            ]
+        },
+
+        // Abrosexual
+        {
+            words: ['abrosexual', 'abro'],
+            colors: [
+                '#65C286',
+                '#B4E4CC',
+                '#FFFFFF',
+                '#E796B7',
+                '#D9446E'
+            ]
+        },
+
+        // Multisexual
+        {
+            words: ['multisexual', 'multi'],
+            colors: [
+                '#FF3B7B',
+                '#FF8EC8',
+                '#FFFFFF',
+                '#7BB8FF',
+                '#3B7BFF'
+            ]
+        },
+
+        // Intersex
+        {
+            words: ['intersex'],
+            colors: [
+                '#FFD800',
+                '#7902AA',
+                '#FFD800'
+            ]
+        },
+
+        // Two-spirit
+        {
+            words: ['two-spirit', 'two spirit', 'twospirit'],
+            colors: [
+                '#D62828',
+                '#F77F00',
+                '#FCBF49',
+                '#2A9D8F',
+                '#277DA1',
+                '#7B2CBF'
+            ]
+        },
+
+        // Sapphic
+        {
+            words: ['sapphic'],
+            colors: [
+                '#FF8DC7',
+                '#DDDDDD',
+                '#D629A9',
+                '#7B1FA2'
+            ]
+        },
+
+        // Queerplatonic
+        {
+            words: ['queerplatonic', 'queer-platonic', 'qpr'],
+            colors: [
+                '#F9E26C',
+                '#F5A9B8',
+                '#FFFFFF',
+                '#B0B0B0',
+                '#000000'
+            ]
+        },
+
+        // Butch
+        {
+            words: ['butch'],
+            colors: [
+                '#D87800',
+                '#F0C000',
+                '#FDF29C',
+                '#FFFFFF',
+                '#A7A3D0',
+                '#736EB5',
+                '#504C9A'
+            ]
+        },
+
+        // Femme
+        {
+            words: ['femme'],
+            colors: [
+                '#EF87C3',
+                '#F5B0D7',
+                '#F8D2E8',
+                '#FFFFFF',
+                '#C9A7E6',
+                '#9B6BC7',
+                '#7A3BA8'
+            ]
+        },
+
+        // Bear (International Bear Brotherhood)
+        {
+            words: ['bear', 'bears'],
+            colors: [
+                '#623804',
+                '#D56300',
+                '#FEDD63',
+                '#FEE6B8',
+                '#FFFFFF',
+                '#555555',
+                '#000000'
+            ]
+        },
+
+        // Leather (Leather Pride)
+        {
+            words: ['leather', 'leather pride'],
+            colors: [
+                '#000000',
+                '#18186B',
+                '#000000',
+                '#18186B',
+                '#000000',
+                '#FFFFFF',
+                '#E70039',
+                '#FFFFFF',
+                '#000000',
+                '#18186B',
+                '#000000'
+            ]
+        },
+
+        // Straight ally / ally
+        {
+            words: ['straight ally', 'ally', 'allies'],
+            colors: [
+                '#000000',
+                '#FFFFFF',
+                '#000000',
+                '#FFFFFF',
+                '#E40303',
+                '#FF8C00',
+                '#FFED00',
+                '#008026',
+                '#004DFF',
+                '#750787',
+                '#FFFFFF',
+                '#000000',
+                '#FFFFFF',
+                '#000000'
+            ]
+        },
+
+        // Questioning
+        {
+            words: ['questioning'],
+            colors: [
+                '#FF75A2',
+                '#DDDDDD',
+                '#9C59D1',
+                '#2C2C2C',
+                '#5BCEFA'
+            ]
+        },
+    ];
+
+
+    /*
+     * ============================================================
+     * SETTINGS
+     * ============================================================
+     */
+
+    // Case-insensitive matching.
+    const CASE_INSENSITIVE = true;
+
+    // Highlight whole words rather than arbitrary substrings.
+    const WHOLE_WORDS_ONLY = true;
+
+    // Don't process text inside these elements.
+    const IGNORED_ELEMENTS = new Set([
+        'SCRIPT',
+        'STYLE',
+        'NOSCRIPT',
+        'TEXTAREA',
+        'INPUT',
+        'SELECT',
+        'OPTION',
+        'CODE',
+        'PRE',
+        'KBD',
+        'SAMP',
+        'SVG',
+        'MATH'
+    ]);
+
+    // Class added to generated spans.
+    const HIGHLIGHT_CLASS = '__pride_flag_highlight';
+
+
+    /*
+     * ============================================================
+     * CSS
+     * ============================================================
+     */
+
+    const style = document.createElement('style');
+
+    style.textContent = `
+        .${HIGHLIGHT_CLASS} {
+            display: inline;
+
+            /*
+            * Paint the gradient onto the text itself.
+            */
+            background-image: var(--pfh-gradient) !important;
+            background-clip: text !important;
+            -webkit-background-clip: text !important;
+
+            /*
+            * Make the actual text transparent so the gradient
+            * underneath becomes visible.
+            */
+            color: transparent !important;
+            -webkit-text-fill-color: transparent !important;
+
+            /*
+            * Preserve the surrounding site's typography.
+            */
+            font: inherit !important;
+        }
+    `;
+
+    // document-start means <head> may not exist yet.
+    function installStyle() {
+        if (document.head) {
+            document.head.appendChild(style);
+        } else {
+            document.documentElement.appendChild(style);
+        }
+    }
+
+    installStyle();
+
+
+    /*
+     * ============================================================
+     * BUILD REGEX
+     * ============================================================
+     */
+
+    function escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Make a lookup table so each match knows which flag it belongs to.
+    const wordToFlag = new Map();
+
+    for (const flag of FLAGS) {
+        for (const word of flag.words) {
+            wordToFlag.set(word.toLowerCase(), flag);
+        }
+    }
+
+    // Longest words first.
+    // This prevents shorter entries from stealing matches.
+    const words = [...wordToFlag.keys()]
+        .sort((a, b) => b.length - a.length)
+        .map(escapeRegex);
+
+    if (words.length === 0) {
+        return;
+    }
+
+    let boundaryStart = '';
+    let boundaryEnd = '';
+
+    if (WHOLE_WORDS_ONLY) {
+        boundaryStart = '(?<![\\p{L}\\p{N}_-])';
+        boundaryEnd = '(?![\\p{L}\\p{N}_-])';
+    }
+
+    const regex = new RegExp(
+        boundaryStart +
+        `(${words.join('|')})` +
+        boundaryEnd,
+        CASE_INSENSITIVE ? 'giu' : 'gu'
+    );
+
+
+    /*
+     * ============================================================
+     * CREATE HIGHLIGHT
+     * ============================================================
+     */
+
+    function makeHighlight(text) {
+        const flag = wordToFlag.get(text.toLowerCase());
+
+        if (!flag) {
+            return document.createTextNode(text);
+        }
+
+        const span = document.createElement('span');
+
+        span.className = HIGHLIGHT_CLASS;
+        span.textContent = text;
+
+        span.style.setProperty(
+            '--pfh-gradient',
+            `linear-gradient(90deg, ${flag.colors.join(', ')})`
+        );
+
+        return span;
+    }
+
+
+    /*
+     * ============================================================
+     * PROCESS TEXT NODE
+     * ============================================================
+     */
+
+    function processTextNode(node) {
+        if (!node || !node.parentElement) {
+            return;
+        }
+
+        const parent = node.parentElement;
+
+        if (IGNORED_ELEMENTS.has(parent.tagName) || parent.isContentEditable) {
+            return;
+        }
+
+        if (parent.closest(`.${HIGHLIGHT_CLASS}`)) {
+            return;
+        }
+
+        const text = node.nodeValue;
+
+        if (!text || !regex.test(text)) {
+            regex.lastIndex = 0;
+            return;
+        }
+
+        // Reset regex because RegExp objects with /g retain lastIndex.
+        regex.lastIndex = 0;
+
+        const fragment = document.createDocumentFragment();
+
+        let lastIndex = 0;
+        let match;
+
+        while ((match = regex.exec(text)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+
+            if (start > lastIndex) {
+                fragment.appendChild(
+                    document.createTextNode(
+                        text.slice(lastIndex, start)
+                    )
+                );
+            }
+
+            fragment.appendChild(makeHighlight(match[0]));
+
+            lastIndex = end;
+        }
+
+        if (lastIndex < text.length) {
+            fragment.appendChild(
+                document.createTextNode(
+                    text.slice(lastIndex)
+                )
+            );
+        }
+
+        node.parentNode.replaceChild(fragment, node);
+
+        regex.lastIndex = 0;
+    }
+
+
+    /*
+     * ============================================================
+     * WALK A SUBTREE
+     * ============================================================
+     */
+
+    function processElement(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return;
+        }
+
+        if (IGNORED_ELEMENTS.has(element.tagName)) {
+            return;
+        }
+
+        if (element.isContentEditable) {
+            return;
+        }
+
+        if (element.classList.contains(HIGHLIGHT_CLASS)) {
+            return;
+        }
+
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode(node) {
+                    const parent = node.parentElement;
+
+                    if (!parent) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    if (IGNORED_ELEMENTS.has(parent.tagName)) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    if (parent.isContentEditable) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    if (parent.closest(`.${HIGHLIGHT_CLASS}`)) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+
+        const nodes = [];
+
+        let node;
+
+        while ((node = walker.nextNode())) {
+            nodes.push(node);
+        }
+
+        for (const textNode of nodes) {
+            processTextNode(textNode);
+        }
+    }
+
+
+    /*
+     * ============================================================
+     * INITIAL PAGE
+     * ============================================================
+     */
+
+    function processPage() {
+        if (document.body) {
+            processElement(document.body);
+        }
+    }
+
+
+    /*
+     * ============================================================
+     * DYNAMIC CONTENT
+     * ============================================================
+     *
+     * Modern websites constantly add/change content without
+     * reloading the page. MutationObserver catches that.
+     */
+
+    const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+
+            // Newly inserted elements.
+            for (const addedNode of mutation.addedNodes) {
+                if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                    processElement(addedNode);
+                } else if (addedNode.nodeType === Node.TEXT_NODE) {
+                    processTextNode(addedNode);
+                }
+            }
+
+            // Existing text that has changed.
+            if (mutation.type === 'characterData') {
+                processTextNode(mutation.target);
+            }
+        }
+    });
+
+
+    /*
+     * ============================================================
+     * START
+     * ============================================================
+     */
+
+    function start() {
+        processPage();
+
+        if (document.body) {
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, {
+            once: true
+        });
+    } else {
+        start();
+    }
+
+})();
