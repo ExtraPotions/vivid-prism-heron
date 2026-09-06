@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pride Flag Highlighter
 // @namespace    pride.flag-highlighter
-// @version      1.1.3
+// @version      1.1.4
 // @description  Highlights queer- and LGBTQ+-related words using their associated pride flag colours.
 // @author       Pride
 // @license      CC BY-NC-SA 4.0
@@ -12,8 +12,9 @@
 // ==/UserScript==
 
 /*
- * Based on Queer Flag Highlighter by Yeosangist (GreasyFork 594233).
- * Licensed under CC BY-NC-SA 4.0.
+ * Pride Flag Highlighter — Pride / ExtraPotions
+ * License: CC BY-NC-SA 4.0
+ * License notice: includes adaptations of earlier CC BY-NC-SA material by Yeosangist.
  */
 
 (() => {
