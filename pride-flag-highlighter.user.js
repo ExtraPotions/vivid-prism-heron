@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      1.4.0
+// @version      1.4.1
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -939,7 +939,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.4.0';
+    const SCRIPT_VERSION = '1.4.1';
     const SETTINGS_KEY = 'prism.pride-highlighter.settings';
     const LEGACY_SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'prism.pride-highlighter.lastVersion';

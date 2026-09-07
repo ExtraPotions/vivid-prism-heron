@@ -17,7 +17,7 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.4.0
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.4.1
 
 The same compact prism/spark artwork is used for the userscript icon and the in-page dock button. The SVG scales cleanly for both 64×64 and 128×128 displays.
 
