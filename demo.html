@@ -1185,7 +1185,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.3.1';
+    const SCRIPT_VERSION = '1.4.0';
     const SETTINGS_KEY = 'prism.pride-highlighter.settings';
     const LEGACY_SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'prism.pride-highlighter.lastVersion';
@@ -1201,8 +1201,11 @@
 
     const DEFAULT_SETTINGS = Object.freeze({
         enabled: true,
-        style: 'gradient', // 'gradient' | 'underline'
+        style: 'gradient', // 'gradient' | 'underline' | 'background'
+        intensity: 'balanced', // 'subtle' | 'balanced' | 'vivid'
         showLabels: true,
+        reducedMotion: false,
+        highContrast: false,
         disabledFlags: Object.freeze([]),
         excludedHosts: Object.freeze([])
     });
@@ -1211,7 +1214,10 @@
         return {
             enabled: DEFAULT_SETTINGS.enabled,
             style: DEFAULT_SETTINGS.style,
+            intensity: DEFAULT_SETTINGS.intensity,
             showLabels: DEFAULT_SETTINGS.showLabels,
+            reducedMotion: DEFAULT_SETTINGS.reducedMotion,
+            highContrast: DEFAULT_SETTINGS.highContrast,
             disabledFlags: [],
             excludedHosts: []
         };
@@ -1228,8 +1234,11 @@
 
         return {
             enabled: source.enabled !== false,
-            style: source.style === 'underline' ? 'underline' : 'gradient',
+            style: ['gradient', 'underline', 'background'].includes(source.style) ? source.style : 'gradient',
+            intensity: ['subtle', 'balanced', 'vivid'].includes(source.intensity) ? source.intensity : 'balanced',
             showLabels: source.showLabels !== false,
+            reducedMotion: source.reducedMotion === true,
+            highContrast: source.highContrast === true,
             disabledFlags: [...new Set(disabled)],
             excludedHosts: [...new Set(excludedHosts)]
         };
@@ -1306,6 +1315,16 @@
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
+.${HIGHLIGHT_CLASS}[data-pfh-style="background"] {
+  color: #171b24 !important;
+  -webkit-text-fill-color: #171b24 !important;
+  background-image: var(--pfh-gradient) !important;
+  background-clip: padding-box !important;
+  border-radius: 0.25em;
+  padding: 0 0.16em !important;
+}
+.${HIGHLIGHT_CLASS}[data-pfh-intensity="subtle"] { filter: saturate(.68); }
+.${HIGHLIGHT_CLASS}[data-pfh-intensity="vivid"] { filter: saturate(1.18) contrast(1.04); }
 .${HIGHLIGHT_CLASS}[data-pfh-label="1"]::after {
   content: attr(data-pfh-name);
   position: absolute;
@@ -1325,11 +1344,22 @@
   box-shadow: 0 4px 14px rgba(0,0,0,0.28);
   transition: opacity 0.12s ease, transform 0.12s ease;
 }
+.${HIGHLIGHT_CLASS}[data-pfh-label-position="above"]::after { top: auto; bottom: calc(100% + 6px); }
+.${HIGHLIGHT_CLASS}[data-pfh-label-align="left"]::after { left: 0; transform: translateX(0) translateY(2px); }
+.${HIGHLIGHT_CLASS}[data-pfh-label-align="right"]::after { left: auto; right: 0; transform: translateX(0) translateY(2px); }
 .${HIGHLIGHT_CLASS}[data-pfh-label="1"]:hover::after,
 .${HIGHLIGHT_CLASS}[data-pfh-label="1"]:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"][data-pfh-label-align="left"]:hover::after,
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"][data-pfh-label-align="left"]:focus-visible::after,
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"][data-pfh-label-align="right"]:hover::after,
+.${HIGHLIGHT_CLASS}[data-pfh-label="1"][data-pfh-label-align="right"]:focus-visible::after { transform: translateX(0) translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  #${UI_ROOT_ID} *, .${HIGHLIGHT_CLASS}[data-pfh-label="1"]::after { transition: none !important; }
+}
+#${UI_ROOT_ID}[data-pfh-motion="1"] *, #${UI_ROOT_ID}[data-pfh-motion="1"] .${HIGHLIGHT_CLASS}[data-pfh-label="1"]::after { transition: none !important; }
 #${UI_ROOT_ID} {
   all: initial;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif;
@@ -1366,6 +1396,13 @@
   box-shadow: 0 8px 22px rgba(0,0,0,0.38), 0 0 0 2px rgba(122,208,255,0.7);
 }
 #${UI_ROOT_ID} .pfh-fab[data-dragging="1"] { cursor: grabbing; transform: none; }
+#${UI_ROOT_ID} .pfh-quickbar { position: fixed; z-index: 2147483647; display: flex; gap: 3px; padding: 3px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px; background: #12141a; box-shadow: 0 5px 16px rgba(0,0,0,.3); }
+#${UI_ROOT_ID} .pfh-quickbar button { width: 27px; height: 27px; padding: 0; border: 0; border-radius: 6px; background: #1c2230; color: #cfd7e6; cursor: pointer; font: 600 .63rem system-ui, sans-serif; }
+#${UI_ROOT_ID} .pfh-quickbar button[aria-pressed="true"] { color: #10131a; background: linear-gradient(100deg, #ff8fbd, #ffe071, #77dfff); }
+#${UI_ROOT_ID} .pfh-quickbar button:focus-visible { outline: 2px solid #9bdcff; outline-offset: 1px; }
+#${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-panel { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 16px 40px rgba(0,0,0,.65); }
+#${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-switch-track { border: 2px solid #fff; }
+#${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-panel, #${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-fab { color: #fff; }
 #${UI_ROOT_ID} .pfh-toast {
   position: fixed;
   left: 50%;
@@ -1423,6 +1460,10 @@
 #${UI_ROOT_ID} .pfh-actions { padding-left: 18px; padding-right: 18px; }
 #${UI_ROOT_ID} .pfh-panel-head { padding-top: 14px; padding-bottom: 10px; }
 #${UI_ROOT_ID} .pfh-subtitle { margin: 0; color: rgba(242,244,248,0.66); font-size: 0.76rem; }
+#${UI_ROOT_ID} .pfh-quick { display: flex; gap: 3px; margin-top: 8px; }
+#${UI_ROOT_ID} .pfh-quick button { flex: 1; min-height: 26px; padding: 0 5px; border: 1px solid rgba(255,255,255,.16); border-radius: 6px; background: #1c2230; color: #cfd7e6; cursor: pointer; font: 600 .7rem system-ui, sans-serif; }
+#${UI_ROOT_ID} .pfh-quick button[aria-pressed="true"] { color: #10131a; border-color: transparent; background: linear-gradient(100deg, #ff8fbd, #ffe071, #77dfff); }
+#${UI_ROOT_ID} .pfh-quick button:focus-visible { outline: 2px solid #9bdcff; outline-offset: 1px; }
 #${UI_ROOT_ID} .pfh-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; padding-bottom: 8px; }
 #${UI_ROOT_ID} .pfh-section-title { color: rgba(242,244,248,0.6); font-size: 0.68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
 #${UI_ROOT_ID} .pfh-row {
@@ -1481,6 +1522,10 @@
   cursor: pointer;
   padding: 0.42rem 0;
 }
+#${UI_ROOT_ID} .pfh-flag-search { width: 100%; margin: 0 0 6px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.15); border-radius: 7px; background: #171c27; color: #f2f4f8; font: .78rem system-ui, sans-serif; }
+#${UI_ROOT_ID} .pfh-flag-search::placeholder { color: rgba(242,244,248,.5); }
+#${UI_ROOT_ID} .pfh-flag-search:focus-visible { outline: 2px solid #9bdcff; outline-offset: 1px; }
+#${UI_ROOT_ID} .pfh-flag-empty { color: rgba(242,244,248,.6); font-size: .76rem; padding: 8px 0; }
 #${UI_ROOT_ID} .pfh-flag-name { display: flex; align-items: center; gap: .45rem; min-width: 0; }
 #${UI_ROOT_ID} .pfh-flag-name > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #${UI_ROOT_ID} details.pfh-details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; min-height: 34px; font-size: .86rem; }
@@ -1572,9 +1617,26 @@
         span.setAttribute('aria-label', flag.label);
         span.dataset.pfhName = flag.label;
         span.dataset.pfhStyle = settings.style;
+        span.dataset.pfhIntensity = settings.intensity;
         span.dataset.pfhLabel = settings.showLabels ? '1' : '0';
         span.dataset.pfhId = flag.id;
         span.style.setProperty('--pfh-gradient', flagGradient(flag.colors));
+        span.tabIndex = 0;
+        span.addEventListener('pointerenter', () => {
+            const rect = span.getBoundingClientRect();
+            span.dataset.pfhLabelPosition = rect.top < 42 ? 'below' : (rect.bottom + 42 > window.innerHeight ? 'above' : 'below');
+            span.dataset.pfhLabelAlign = rect.left < 110 ? 'left' : (rect.right > window.innerWidth - 110 ? 'right' : 'center');
+        }, { passive: true });
+        span.addEventListener('click', (event) => {
+            if (span.closest('a')) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(flag.label).then(() => showToast(`Copied ${flag.label}`)).catch(() => {});
+            }
+        });
     }
 
     function makeHighlight(text) {
@@ -1776,6 +1838,7 @@
 
     let panelEl = null;
     let fabEl = null;
+    let quickbarEl = null;
     let uiRoot = null;
 
     function applySettings(next, { persist = true } = {}) {
@@ -1794,9 +1857,18 @@
             return;
         }
 
+        uiRoot.dataset.pfhContrast = settings.highContrast ? '1' : '0';
+        uiRoot.dataset.pfhMotion = settings.reducedMotion ? '1' : '0';
+
         panelEl.querySelector('#pfh-enabled').checked = settings.enabled;
         panelEl.querySelector('#pfh-style').value = settings.style;
+        panelEl.querySelector('#pfh-intensity').value = settings.intensity;
+        uiRoot.querySelectorAll('.pfh-quick button, .pfh-quickbar button').forEach(button => {
+            button.setAttribute('aria-pressed', button.dataset.style === settings.style ? 'true' : 'false');
+        });
         panelEl.querySelector('#pfh-labels').checked = settings.showLabels;
+        panelEl.querySelector('#pfh-reduced-motion').checked = settings.reducedMotion;
+        panelEl.querySelector('#pfh-high-contrast').checked = settings.highContrast;
         panelEl.querySelector('#pfh-exclude-site').checked = isSiteExcluded();
 
         const hostNote = panelEl.querySelector('#pfh-host-note');
@@ -1836,7 +1908,10 @@
         return {
             enabled: panelEl.querySelector('#pfh-enabled').checked,
             style: panelEl.querySelector('#pfh-style').value,
+            intensity: panelEl.querySelector('#pfh-intensity').value,
             showLabels: panelEl.querySelector('#pfh-labels').checked,
+            reducedMotion: panelEl.querySelector('#pfh-reduced-motion').checked,
+            highContrast: panelEl.querySelector('#pfh-high-contrast').checked,
             disabledFlags,
             excludedHosts
         };
@@ -1930,11 +2005,6 @@
                 continue;
             }
 
-            const position = style.position;
-            if (position !== 'fixed' && position !== 'sticky') {
-                continue;
-            }
-
             if (
                 style.display === 'none' ||
                 style.visibility === 'hidden' ||
@@ -1945,6 +2015,13 @@
 
             const rect = el.getBoundingClientRect();
             if (rect.width < 8 || rect.height < 8) {
+                continue;
+            }
+            const position = style.position;
+            const isCornerButton = el.matches?.('button,[role="button"],[data-floating-control]') &&
+                (rect.right > window.innerWidth - 180 || rect.left < 180) &&
+                (rect.bottom > window.innerHeight - 180 || rect.top < 180);
+            if (position !== 'fixed' && position !== 'sticky' && !isCornerButton) {
                 continue;
             }
             if (
@@ -1979,6 +2056,8 @@
             fabEl.style.bottom = `${bottom}px`;
             panelEl.style.right = `${FAB_MARGIN}px`;
             panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
+            quickbarEl.style.right = `${FAB_MARGIN + FAB_SIZE + FAB_GAP}px`;
+            quickbarEl.style.bottom = `${bottom}px`;
             return;
         }
 
@@ -2024,6 +2103,8 @@
         fabEl.style.bottom = `${chosenBottom}px`;
         panelEl.style.right = `${chosenRight}px`;
         panelEl.style.bottom = `${chosenBottom + FAB_SIZE + FAB_GAP}px`;
+        quickbarEl.style.right = `${chosenRight + FAB_SIZE + FAB_GAP}px`;
+        quickbarEl.style.bottom = `${chosenBottom}px`;
     }
 
     let fabPlaceTimer = null;
@@ -2134,6 +2215,11 @@
         fabImg.draggable = false;
         fabEl.appendChild(fabImg);
 
+        quickbarEl = document.createElement('div');
+        quickbarEl.className = 'pfh-quickbar';
+        quickbarEl.setAttribute('aria-label', 'Quick highlight styles');
+        quickbarEl.innerHTML = '<button type="button" data-style="gradient" aria-label="Gradient text" aria-pressed="false">G</button><button type="button" data-style="underline" aria-label="Underline" aria-pressed="false">U</button><button type="button" data-style="background" aria-label="Soft background" aria-pressed="false">F</button>';
+
         panelEl = document.createElement('div');
         panelEl.className = 'pfh-panel';
         panelEl.id = 'pfh-panel';
@@ -2142,7 +2228,7 @@
         panelEl.setAttribute('aria-label', 'Prism Pride Highlighter settings');
 
         panelEl.innerHTML = `
-            <div class="pfh-panel-head"><h2>Prism Pride Highlighter</h2><p class="pfh-subtitle">Reveal identity colour cues in page text.</p></div>
+            <div class="pfh-panel-head"><h2>Prism Pride Highlighter</h2><p class="pfh-subtitle">Reveal identity colour cues in page text.</p><div class="pfh-quick" aria-label="Quick highlight styles"><button type="button" data-style="gradient" aria-pressed="false">Gradient</button><button type="button" data-style="underline" aria-pressed="false">Underline</button><button type="button" data-style="background" aria-pressed="false">Soft fill</button></div></div>
             <div class="pfh-section">
                 <div class="pfh-section-title">Protection</div>
                 <div class="pfh-row pfh-row-main"><span class="pfh-row-copy">Highlight protection<span class="pfh-row-detail">Enable colour highlighting</span></span>${switchHtml('pfh-enabled', true, 'Enable highlight protection')}</div>
@@ -2153,11 +2239,18 @@
             </div>
             <div class="pfh-section">
                 <div class="pfh-section-title">Appearance</div>
-                <div class="pfh-row"><span>Highlight style</span><select id="pfh-style" aria-label="Highlight style"><option value="gradient">Gradient text</option><option value="underline">Underline</option></select></div>
+                <div class="pfh-row"><span>Highlight style</span><select id="pfh-style" aria-label="Highlight style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div>
+                <div class="pfh-row"><span>Intensity</span><select id="pfh-intensity" aria-label="Highlight intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div>
                 <div class="pfh-row"><span>Hover labels</span>${switchHtml('pfh-labels', true, 'Show hover labels')}</div>
             </div>
             <div class="pfh-section">
-                <details class="pfh-details"><summary>Flag visibility</summary><div class="pfh-flags">${buildFlagChecklistHtml()}</div></details>
+                <details class="pfh-details"><summary>Flag visibility</summary><input id="pfh-flag-search" class="pfh-flag-search" type="search" placeholder="Search 59 flags" aria-label="Search flags" /><div class="pfh-flags">${buildFlagChecklistHtml()}</div></details>
+            </div>
+            <div class="pfh-section">
+                <details class="pfh-details"><summary>Accessibility</summary>
+                    <div class="pfh-row"><span>Reduce motion</span>${switchHtml('pfh-reduced-motion', false, 'Reduce motion')}</div>
+                    <div class="pfh-row"><span>High contrast</span>${switchHtml('pfh-high-contrast', false, 'Use high contrast')}</div>
+                </details>
             </div>
             <div class="pfh-actions">
                 <button type="button" class="pfh-btn" id="pfh-reset">Reset defaults</button>
@@ -2167,6 +2260,7 @@
 
         uiRoot.appendChild(panelEl);
         uiRoot.appendChild(fabEl);
+        uiRoot.appendChild(quickbarEl);
         (document.body || document.documentElement).appendChild(uiRoot);
 
         let fabWasDragged = false;
@@ -2187,6 +2281,7 @@
                     const bottom = Math.max(FAB_MARGIN, Math.min(maxBottom, startBottom - distance));
                     fabEl.style.bottom = `${bottom}px`;
                     panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
+                    quickbarEl.style.bottom = `${bottom}px`;
                 }
             };
             const onEnd = () => {
@@ -2230,8 +2325,31 @@
         panelEl.querySelector('#pfh-enabled').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-exclude-site').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-style').addEventListener('change', onChange);
+        panelEl.querySelector('#pfh-intensity').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-labels').addEventListener('change', onChange);
+        panelEl.querySelector('#pfh-reduced-motion').addEventListener('change', onChange);
+        panelEl.querySelector('#pfh-high-contrast').addEventListener('change', onChange);
         panelEl.querySelector('.pfh-flags').addEventListener('change', onChange);
+        panelEl.querySelector('#pfh-flag-search').addEventListener('input', (event) => {
+            const query = event.target.value.trim().toLowerCase();
+            for (const row of panelEl.querySelectorAll('.pfh-flags > label')) {
+                row.hidden = query && !row.textContent.toLowerCase().includes(query);
+            }
+        });
+        panelEl.querySelector('.pfh-quick').addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-style]');
+            if (!button) return;
+            const next = readPanelSettings();
+            next.style = button.dataset.style;
+            panelEl.querySelector('#pfh-style').value = next.style;
+            applySettings(next);
+        });
+        quickbarEl.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-style]');
+            if (!button) return;
+            const next = { ...settings, style: button.dataset.style };
+            applySettings(next);
+        });
 
         document.addEventListener('keydown', (ev) => {
             if (ev.key === 'Escape' && panelEl.dataset.open === '1') {

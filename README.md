@@ -17,7 +17,7 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.3.1
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.4.0
 
 | Stat | Value |
 |------|-------|
@@ -43,10 +43,13 @@ Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets).
 - **Highlight protection** — the prominent main switch enables or disables highlighting
 - **Exclude this site** — skip highlights on the current host (the control remains available so you can undo it)
 - Style: gradient text or underline
+- Quick style buttons for gradient, underline, and soft background fill
+- Intensity: subtle, balanced, or vivid
 - Hover labels on/off
-- Flag visibility, tucked into a collapsible section to keep the main panel focused
+- Flag visibility search, tucked into a collapsible section to keep the main panel focused
+- Accessibility: reduced-motion and high-contrast options
 
-All binary choices use keyboard-accessible pill switches with clear on/off positions. Existing preferences migrate from `pride.flag-highlighter.settings` to `prism.pride-highlighter.settings`. Reset defaults also restores automatic button placement. A short toast appears once after a version update (not on every page load).
+Quick style buttons sit beside the dock, so switching styles does not require opening the settings panel. Labels reposition above or align to the viewport edge when needed, and clicking a standalone highlighted word copies its identity label. Automatic dock placement checks nearby fixed, sticky, and corner controls in tight 8px increments. Existing preferences migrate from `pride.flag-highlighter.settings` to `prism.pride-highlighter.settings`. Reset defaults also restores automatic button placement. A short toast appears once after a version update (not on every page load).
 
 ## Customize flags
 
