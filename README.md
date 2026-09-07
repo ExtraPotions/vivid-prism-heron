@@ -38,7 +38,7 @@ Optional: open [`demo.html`](demo.html) locally to preview without an extension.
 
 ## Settings
 
-Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets). Drag it up or down to place it where it is most useful; the position is remembered.
+Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets). Its compact 312px settings dock keeps the key controls close at hand. Drag the button up or down to place it where it is most useful; the position is remembered.
 
 - **Highlight protection** — the prominent main switch enables or disables highlighting
 - **Exclude this site** — skip highlights on the current host (the control remains available so you can undo it)
