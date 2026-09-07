@@ -1095,7 +1095,7 @@
         function switchMarkup(id, checked, label) { return `<button class="pph-switch" id="${id}" type="button" role="switch" aria-checked="${checked}" aria-label="${label}"></button>`; }
         function flagMarkup() { return flags.map(flag => `<label class="pph-flag"><span><i class="pph-swatch" style="--swatch:linear-gradient(180deg,${flag.colors.join(',')})"></i>${flag.label}</span>${switchMarkup(`pph-flag-${flag.id}`, !settings.disabledFlags.includes(flag.id), `Show ${flag.label}`)}</label>`).join(''); }
         function buildUi() {
-            uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID; uiRoot.className='pfh-fab';
+            uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID; uiRoot.className='pfh-fab'; uiRoot.setAttribute('data-floating-control','companion');
             uiRoot.style.cssText='all:initial!important;position:fixed!important;width:48px!important;height:48px!important;z-index:2147483647!important;pointer-events:none!important';
             uiShadow=uiRoot.attachShadow({mode:'open'});uiShadow.adoptedStyleSheets=[menuSheet];
             fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false');
@@ -1130,9 +1130,10 @@
             panel.querySelector('#pph-close').addEventListener('click', () => togglePanel(false));
             panel.querySelector('#pph-reset').addEventListener('click', () => { settings = { ...defaults, disabledFlags: [], excludedHosts: [] }; try { localStorage.removeItem(POSITION_KEY); } catch (_err) {} save(); placeDock(true); refresh(); });
             let startY = 0, startBottom = 0, moved = false;
-            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = parseFloat(fab.style.bottom) || 16; moved = false; fab.setPointerCapture(event.pointerId); });
-            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(parseFloat(fab.style.right) || 16, bottom); });
+            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = innerHeight - fab.getBoundingClientRect().bottom; moved = false; fab.setPointerCapture(event.pointerId); });
+            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(innerWidth - fab.getBoundingClientRect().right, bottom); });
             fab.addEventListener('pointerup', event => { if (!fab.hasPointerCapture(event.pointerId)) return; fab.releasePointerCapture(event.pointerId); if (moved) { fab.dataset.dragged = '1'; saveDock(); } });
+            fab.addEventListener('pointercancel', () => { moved = false; delete fab.dataset.dragged; });
             panel.addEventListener('toggle',positionPanel,true);
             document.addEventListener('pointerdown',event=>{if(panel.dataset.open==='1'&&!event.composedPath().includes(uiRoot))togglePanel(false);});
             document.addEventListener('keydown', event => { if (event.key === 'Escape'&&panel.dataset.open==='1') togglePanel(false); });
@@ -1141,7 +1142,7 @@
         }
         function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false');positionPanel(); if(open)panel.querySelector('button').focus();else fab.focus(); }
         function savedDock() { try { const value = JSON.parse(localStorage.getItem(POSITION_KEY)); return Number.isFinite(value?.right) && Number.isFinite(value?.bottom) ? value : null; } catch (_err) { return null; } }
-        function saveDock() { try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: parseFloat(fab.style.right), bottom: parseFloat(fab.style.bottom) })); } catch (_err) {} }
+        function saveDock() { const rect=uiRoot.getBoundingClientRect();try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: innerWidth-rect.right, bottom: innerHeight-rect.bottom })); } catch (_err) {} }
         function positionPanel(){if(!panel||!uiRoot)return;const r=uiRoot.getBoundingClientRect();panel.style.right=`${Math.max(12,Math.min(innerWidth-r.right,innerWidth-324))}px`;panel.style.bottom='auto';panel.style.top=`${Math.max(12,Math.min(r.top-panel.offsetHeight-8,innerHeight-panel.offsetHeight-12))}px`;}
         function setDock(right, bottom) { right=Math.max(12,Math.min(right,innerWidth-60));bottom=Math.max(12,Math.min(bottom,innerHeight-60));fab.style.right = `${right}px`; fab.style.bottom = `${bottom}px`;uiRoot.style.setProperty('right',`${right}px`,'important');uiRoot.style.setProperty('bottom',`${bottom}px`,'important');uiRoot.style.removeProperty('left');uiRoot.style.removeProperty('top'); positionPanel(); }
         function placeDock(force = false) { const saved = !force && savedDock(); if (saved) return setDock(Math.max(16, saved.right), Math.max(16, Math.min(saved.bottom, innerHeight - 64))); let right = 16, bottom = 16; const controls = [...document.querySelectorAll('button,[role="button"],[data-floating-control]')].filter(el => { if (el.closest(`#${ROOT_ID}`)) return false; const s = getComputedStyle(el), r = el.getBoundingClientRect(); return (s.position === 'fixed' || s.position === 'sticky') && r.right > innerWidth - 220 && r.bottom > innerHeight - 220; }).map(el => el.getBoundingClientRect()); outer: for (let y=16;y<=320;y+=8) for (let x=16;x<=320;x+=8) { const l=innerWidth-x-48,t=innerHeight-y-48; if (!controls.some(r => l < r.right && l+48 > r.left && t < r.bottom && t+48 > r.top)) { right=x; bottom=y; break outer; } } setDock(right,bottom); saveDock(); }
