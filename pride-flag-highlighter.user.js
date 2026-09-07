@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      1.5.1
+// @version      2.0.0
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -928,6 +928,184 @@
      * SETTINGS
      * ============================================================
      */
+
+    /*
+     * Runtime v2 is deliberately self-contained.  The flag catalogue above is
+     * retained verbatim; everything below this call is the retired v1 runtime.
+     */
+    polishedRuntime(FLAGS);
+    return;
+
+    function polishedRuntime(flags) {
+        const VERSION = '2.0.0';
+        const SETTINGS_KEY = 'prism.pride-highlighter.settings';
+        const LEGACY_KEY = 'pride.flag-highlighter.settings';
+        const POSITION_KEY = 'prism.pride-highlighter.dock-position';
+        const ROOT_ID = '__prism_pride_highlighter_v2';
+        const HIT = 'pph-hit';
+        const defaults = Object.freeze({
+            enabled: true, style: 'gradient', intensity: 'balanced', labels: true,
+            visibleOnly: false, reducedMotion: false, highContrast: false,
+            disabledFlags: [], excludedHosts: []
+        });
+        const ignoredTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'BUTTON', 'CODE', 'PRE', 'KBD', 'SAMP', 'SVG', 'MATH']);
+        let settings = loadSettings();
+        let matcher = null;
+        let wordMap = new Map();
+        let uiRoot, fab, panel, styleNode;
+        let scanTimer = 0;
+        let domSafeForHighlight = false;
+        let pendingMutations = [];
+        let mutationTimer = 0;
+        const roots = new Set();
+        const observer = new MutationObserver(onMutations);
+
+        function loadSettings() {
+            try {
+                const raw = localStorage.getItem(SETTINGS_KEY) || localStorage.getItem(LEGACY_KEY);
+                return normalise(raw ? JSON.parse(raw) : defaults);
+            } catch (_err) { return { ...defaults, disabledFlags: [], excludedHosts: [] }; }
+        }
+        function normalise(value) {
+            const source = value && typeof value === 'object' ? value : {};
+            return {
+                enabled: source.enabled !== false,
+                style: ['gradient', 'underline', 'background'].includes(source.style) ? source.style : defaults.style,
+                intensity: ['subtle', 'balanced', 'vivid'].includes(source.intensity) ? source.intensity : defaults.intensity,
+                labels: source.labels !== false && source.showLabels !== false,
+                visibleOnly: source.visibleOnly === true,
+                reducedMotion: source.reducedMotion === true,
+                highContrast: source.highContrast === true,
+                disabledFlags: Array.isArray(source.disabledFlags) ? [...new Set(source.disabledFlags.filter(v => typeof v === 'string'))] : [],
+                excludedHosts: Array.isArray(source.excludedHosts) ? [...new Set(source.excludedHosts.filter(v => typeof v === 'string'))] : []
+            };
+        }
+        function save() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_err) {} }
+        function host() { return location.hostname; }
+        function excluded() { return settings.excludedHosts.includes(host()); }
+        function active() { return domSafeForHighlight && settings.enabled && !excluded() && Boolean(matcher); }
+        function escapeRegex(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+        function rebuildMatcher() {
+            wordMap = new Map();
+            const disabled = new Set(settings.disabledFlags);
+            for (const flag of flags) {
+                if (disabled.has(flag.id)) continue;
+                for (const word of flag.words) wordMap.set(word.toLowerCase(), flag);
+            }
+            const words = [...wordMap.keys()].sort((a, b) => b.length - a.length).map(escapeRegex);
+            matcher = words.length ? new RegExp(`\\b(${words.join('|')})\\b`, 'gi') : null;
+        }
+
+        function css() {
+            return `
+.${HIT}{--pph-colours:#ff6da8,#ffdc62,#68d8ff,#a98cff;color:inherit;position:relative;text-decoration:none;font:inherit;cursor:default}
+.${HIT}[data-style="gradient"]{background:linear-gradient(90deg,var(--pph-colours));background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.${HIT}[data-style="underline"]{text-decoration:underline 3px;color:inherit;text-decoration-color:var(--pph-first,#7edbff);text-underline-offset:3px}
+.${HIT}[data-style="background"]{background:linear-gradient(90deg,var(--pph-colours));background-size:100% 100%;box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:0 .08em;border-radius:.16em;color:#10131a}
+.${HIT}[data-intensity="subtle"]{filter:saturate(.68);opacity:.86}.${HIT}[data-intensity="vivid"]{filter:saturate(1.2) contrast(1.05)}
+.${HIT}[data-label="1"]{cursor:copy}.${HIT}[data-label="1"]:hover::after,.${HIT}[data-label="1"]:focus-visible::after{content:attr(data-name);position:absolute;z-index:2147483647;left:0;bottom:calc(100% + 6px);padding:4px 7px;border-radius:6px;background:#121722;color:#fff;font:600 12px/1.2 system-ui,sans-serif;white-space:nowrap;box-shadow:0 4px 16px #0008}.${HIT}[data-align="right"]:hover::after,.${HIT}[data-align="right"]:focus-visible::after{left:auto;right:0}.${HIT}[data-position="below"]:hover::after,.${HIT}[data-position="below"]:focus-visible::after{bottom:auto;top:calc(100% + 6px)}
+#${ROOT_ID}{all:initial}#${ROOT_ID},#${ROOT_ID} *{box-sizing:border-box}#${ROOT_ID} button,#${ROOT_ID} select,#${ROOT_ID} input{font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+#${ROOT_ID} .pph-fab{position:fixed;z-index:2147483647;width:48px;height:48px;padding:0;border:1px solid #ffffff35;border-radius:13px;background:#121722;box-shadow:0 5px 18px #0007;cursor:grab;touch-action:none}#${ROOT_ID} .pph-fab:focus-visible{outline:2px solid #9bdcff;outline-offset:2px}#${ROOT_ID} .pph-fab img{display:block;width:100%;height:100%;pointer-events:none}
+#${ROOT_ID} .pph-panel{position:fixed;z-index:2147483646;width:min(312px,calc(100vw - 24px));max-height:min(68vh,500px);display:none;overflow:auto;border:1px solid #ffffff22;border-radius:14px;background:#12141a;color:#f2f4f8;box-shadow:0 16px 40px #0009}#${ROOT_ID} .pph-panel[data-open="1"]{display:block}#${ROOT_ID}[data-contrast="1"] .pph-panel{border:2px solid #fff}#${ROOT_ID}[data-motion="1"] *{transition:none!important;animation:none!important}
+#${ROOT_ID} .pph-head,#${ROOT_ID} .pph-section,#${ROOT_ID} .pph-actions{padding-left:18px;padding-right:18px}#${ROOT_ID} .pph-head{padding-top:14px;padding-bottom:10px}#${ROOT_ID} h2{margin:0 0 2px;font:700 16px/1.2 system-ui,sans-serif}#${ROOT_ID} .pph-sub{margin:0;color:#c3cad6;font:12px/1.3 system-ui,sans-serif}
+#${ROOT_ID} .pph-quick{display:flex;gap:4px;margin-top:9px}#${ROOT_ID} .pph-quick button{flex:1;min-height:28px;border:1px solid #ffffff28;border-radius:7px;background:#1c2230;color:#e8edf7;font-size:11px;cursor:pointer}#${ROOT_ID} .pph-quick button[aria-pressed="true"]{border-color:transparent;background:linear-gradient(90deg,#ff90bd,#ffe071,#77dfff);color:#10131a}
+#${ROOT_ID} .pph-section{border-top:1px solid #ffffff18;padding-top:8px;padding-bottom:8px}#${ROOT_ID} .pph-title{margin-bottom:4px;color:#aeb7c7;font:700 10px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}#${ROOT_ID} .pph-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;font:13px/1.2 system-ui,sans-serif}#${ROOT_ID} .pph-copy{min-width:0}#${ROOT_ID} .pph-detail{display:block;color:#abb4c3;font-size:11px;margin-top:2px}#${ROOT_ID} .pph-status{color:#8fe3a6}.pph-status[data-excluded="1"]{color:#ffb0b0}
+#${ROOT_ID} .pph-switch{display:inline-flex;width:36px;height:20px;flex:none;cursor:pointer}#${ROOT_ID} .pph-switch input{position:absolute;opacity:0;width:1px;height:1px}#${ROOT_ID} .pph-track{width:36px;height:20px;border:1px solid #ffffff35;border-radius:99px;background:#596171}#${ROOT_ID} .pph-track::after{content:"";display:block;width:14px;height:14px;margin:2px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0008;transition:transform .15s}#${ROOT_ID} .pph-switch input:checked+.pph-track{background:linear-gradient(90deg,#e66aa1,#67cfff,#a185f5)}#${ROOT_ID} .pph-switch input:checked+.pph-track::after{transform:translateX(16px)}#${ROOT_ID} .pph-switch input:focus-visible+.pph-track{outline:2px solid #9bdcff;outline-offset:2px}
+#${ROOT_ID} select,#${ROOT_ID} .pph-actions button{border:1px solid #ffffff30;border-radius:8px;background:#1c2230;color:#f2f4f8;padding:6px 8px;font-size:12px}#${ROOT_ID} details summary{display:flex;align-items:center;justify-content:space-between;min-height:32px;cursor:pointer;font:13px system-ui,sans-serif}#${ROOT_ID} details summary::after{content:"Show";color:#9bdcff;font-size:11px}#${ROOT_ID} details[open] summary::after{content:"Hide"}#${ROOT_ID} .pph-search{width:100%;margin:4px 0 7px;padding:7px 8px;border:1px solid #ffffff30;border-radius:7px;background:#171c27;color:#fff}#${ROOT_ID} .pph-flags{max-height:220px;overflow:auto;border:1px solid #ffffff1c;border-radius:9px;padding:0 8px}#${ROOT_ID} .pph-flag{display:flex;align-items:center;justify-content:space-between;min-height:30px;border-bottom:1px solid #ffffff12;font:12px system-ui,sans-serif}#${ROOT_ID} .pph-flag:last-child{border:0}#${ROOT_ID} .pph-swatch{width:13px;height:13px;border-radius:3px;background:var(--swatch);margin-right:7px;display:inline-block;vertical-align:-2px}#${ROOT_ID} .pph-actions{position:sticky;bottom:0;display:flex;justify-content:space-between;padding-top:9px;padding-bottom:10px;border-top:1px solid #ffffff1c;background:#12141a}
+@media (prefers-reduced-motion:reduce){#${ROOT_ID} *{transition:none!important;animation:none!important}}
+`;
+        }
+
+        function installStyle() {
+            if (!styleNode) { styleNode = document.createElement('style'); document.documentElement.appendChild(styleNode); }
+            styleNode.textContent = css();
+        }
+        function ignored(parent) {
+            return !parent || ignoredTags.has(parent.tagName) || parent.isContentEditable || Boolean(parent.closest(`#${ROOT_ID}, .${HIT}, form, [contenteditable="true"]`));
+        }
+        function inView(el) {
+            const rect = el.getBoundingClientRect();
+            return rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth;
+        }
+        function decorate(word) {
+            const flag = wordMap.get(word.toLowerCase());
+            if (!flag) return document.createTextNode(word);
+            const span = document.createElement('span');
+            span.className = HIT; span.textContent = word; span.tabIndex = settings.labels ? 0 : -1;
+            span.dataset.name = flag.label; span.dataset.style = settings.style; span.dataset.intensity = settings.intensity; span.dataset.label = settings.labels ? '1' : '0';
+            span.style.setProperty('--pph-colours', flag.colors.join(',')); span.style.setProperty('--pph-first', flag.colors[0]);
+            span.addEventListener('pointerenter', () => placeLabel(span));
+            span.addEventListener('click', () => copyLabel(flag.label));
+            span.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); copyLabel(flag.label); } });
+            return span;
+        }
+        function placeLabel(span) { const r = span.getBoundingClientRect(); span.dataset.position = r.top < 34 ? 'below' : 'above'; span.dataset.align = r.left > innerWidth - 160 ? 'right' : 'left'; }
+        function copyLabel(label) { if (settings.labels && navigator.clipboard?.writeText) navigator.clipboard.writeText(label).catch(() => {}); }
+        function processText(node) {
+            if (!active() || !node?.parentElement || ignored(node.parentElement) || (settings.visibleOnly && !inView(node.parentElement))) return;
+            const text = node.nodeValue || ''; matcher.lastIndex = 0; if (!matcher.test(text)) return; matcher.lastIndex = 0;
+            const fragment = document.createDocumentFragment(); let last = 0, match;
+            while ((match = matcher.exec(text))) { if (match.index > last) fragment.append(document.createTextNode(text.slice(last, match.index))); fragment.append(decorate(match[0])); last = match.index + match[0].length; }
+            if (last < text.length) fragment.append(document.createTextNode(text.slice(last)));
+            try { if (node.parentNode === node.parentElement) node.replaceWith(fragment); } catch (_err) {} matcher.lastIndex = 0;
+        }
+        function scan(root) {
+            if (!active() || !root) return;
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; return ignored(p) || (settings.visibleOnly && !inView(p)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; } });
+            const nodes = []; let node; while ((node = walker.nextNode())) nodes.push(node); for (const text of nodes) processText(text);
+            discoverShadowRoots(root);
+        }
+        function clear(root) { if (!root?.querySelectorAll) return; for (const span of root.querySelectorAll(`.${HIT}`)) { span.replaceWith(document.createTextNode(span.textContent || '')); span.parentNode?.normalize(); } }
+        function discoverShadowRoots(root) { if (!root?.querySelectorAll) return; if (root.shadowRoot) observeRoot(root.shadowRoot); for (const el of root.querySelectorAll('*')) if (el.shadowRoot) observeRoot(el.shadowRoot); }
+        function observeRoot(root) { if (!root) return; roots.add(root); observer.observe(root, { childList:true, subtree:true, characterData:true }); scan(root); }
+        function flushMutations() { mutationTimer = 0; if (!active()) { pendingMutations = []; return; } const batch = pendingMutations; pendingMutations = []; for (const mutation of batch) { if (mutation.type === 'characterData') processText(mutation.target); for (const node of mutation.addedNodes) { if (node.nodeType === Node.TEXT_NODE) processText(node); if (node.nodeType === Node.ELEMENT_NODE && node.id !== ROOT_ID) scan(node); } } }
+        function onMutations(mutations) { if (!active()) return; pendingMutations.push(...mutations); if (!mutationTimer) mutationTimer = window.setTimeout(flushMutations, 48); }
+        function refresh() { observer.disconnect(); pendingMutations = []; if (mutationTimer) { clearTimeout(mutationTimer); mutationTimer = 0; } clear(document.body); for (const root of roots) clear(root); rebuildMatcher(); installStyle(); if (!domSafeForHighlight) { syncUi(); return; } if (active()) scan(document.body); observer.observe(document.body, { childList:true, subtree:true, characterData:true }); for (const root of roots) observer.observe(root, { childList:true, subtree:true, characterData:true }); syncUi(); }
+        function scheduleVisibleScan() { if (!settings.visibleOnly || scanTimer) return; scanTimer = requestAnimationFrame(() => { scanTimer = 0; scan(document.body); }); }
+
+        function switchMarkup(id, checked, label) { return `<label class="pph-switch"><input id="${id}" type="checkbox" ${checked ? 'checked' : ''} aria-label="${label}"><span class="pph-track" aria-hidden="true"></span></label>`; }
+        function flagMarkup() { return flags.map(flag => `<label class="pph-flag"><span><i class="pph-swatch" style="--swatch:linear-gradient(180deg,${flag.colors.join(',')})"></i>${flag.label}</span>${switchMarkup(`pph-flag-${flag.id}`, !settings.disabledFlags.includes(flag.id), `Show ${flag.label}`)}</label>`).join(''); }
+        function buildUi() {
+            uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID;
+            fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false'); fab.innerHTML = '<img alt="" src="https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg">';
+            panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.setAttribute('aria-label', 'Prism Pride Highlighter settings');
+            panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><footer class="pph-actions"><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
+            uiRoot.append(panel, fab); (document.body || document.documentElement).append(uiRoot); placeDock(); bindUi(); syncUi();
+        }
+        function readUi() {
+            const disabled = flags.filter(flag => !panel.querySelector(`#pph-flag-${CSS.escape(flag.id)}`)?.checked).map(flag => flag.id);
+            const hosts = settings.excludedHosts.filter(value => value !== host()); if (panel.querySelector('#pph-exclude').checked && host()) hosts.push(host());
+            return normalise({ enabled: panel.querySelector('#pph-enabled').checked, style: panel.querySelector('#pph-style').value, intensity: panel.querySelector('#pph-intensity').value, labels: panel.querySelector('#pph-labels').checked, visibleOnly: panel.querySelector('#pph-visible').checked, reducedMotion: panel.querySelector('#pph-motion').checked, highContrast: panel.querySelector('#pph-contrast').checked, disabledFlags: disabled, excludedHosts: hosts });
+        }
+        function apply(next) { settings = next; save(); refresh(); }
+        function syncUi() {
+            if (!panel) return; uiRoot.dataset.contrast = settings.highContrast ? '1' : '0'; uiRoot.dataset.motion = settings.reducedMotion ? '1' : '0';
+            panel.querySelector('#pph-enabled').checked = settings.enabled; panel.querySelector('#pph-exclude').checked = excluded(); panel.querySelector('#pph-style').value = settings.style; panel.querySelector('#pph-intensity').value = settings.intensity; panel.querySelector('#pph-labels').checked = settings.labels; panel.querySelector('#pph-visible').checked = settings.visibleOnly; panel.querySelector('#pph-motion').checked = settings.reducedMotion; panel.querySelector('#pph-contrast').checked = settings.highContrast;
+            panel.querySelectorAll('.pph-quick button').forEach(button => button.setAttribute('aria-pressed', button.dataset.style === settings.style ? 'true' : 'false'));
+            panel.querySelector('#pph-host').textContent = `Current site: ${host() || '(unknown)'}`; const status = panel.querySelector('#pph-status'); status.textContent = excluded() ? 'Highlighting paused on this site' : 'Highlighting active on this site'; status.dataset.excluded = excluded() ? '1' : '0';
+        }
+        function bindUi() {
+            fab.addEventListener('click', event => { if (fab.dataset.dragged === '1') { delete fab.dataset.dragged; return; } togglePanel(panel.dataset.open !== '1'); });
+            panel.addEventListener('change', () => apply(readUi()));
+            panel.querySelector('.pph-quick').addEventListener('click', event => { const button = event.target.closest('button[data-style]'); if (!button) return; panel.querySelector('#pph-style').value = button.dataset.style; apply(readUi()); });
+            panel.querySelector('#pph-search').addEventListener('input', event => { const query = event.target.value.trim().toLowerCase(); panel.querySelectorAll('.pph-flag').forEach(row => row.hidden = Boolean(query) && !row.textContent.toLowerCase().includes(query)); });
+            panel.querySelector('#pph-close').addEventListener('click', () => togglePanel(false));
+            panel.querySelector('#pph-reset').addEventListener('click', () => { settings = { ...defaults, disabledFlags: [], excludedHosts: [] }; try { localStorage.removeItem(POSITION_KEY); } catch (_err) {} save(); placeDock(true); refresh(); });
+            let startY = 0, startBottom = 0, moved = false;
+            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = parseFloat(fab.style.bottom) || 16; moved = false; fab.setPointerCapture(event.pointerId); });
+            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(parseFloat(fab.style.right) || 16, bottom); });
+            fab.addEventListener('pointerup', event => { if (!fab.hasPointerCapture(event.pointerId)) return; fab.releasePointerCapture(event.pointerId); if (moved) { fab.dataset.dragged = '1'; saveDock(); } });
+            document.addEventListener('keydown', event => { if (event.key === 'Escape') togglePanel(false); }); window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { if (settings.visibleOnly) scheduleVisibleScan(); });
+        }
+        function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        function savedDock() { try { const value = JSON.parse(localStorage.getItem(POSITION_KEY)); return Number.isFinite(value?.right) && Number.isFinite(value?.bottom) ? value : null; } catch (_err) { return null; } }
+        function saveDock() { try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: parseFloat(fab.style.right), bottom: parseFloat(fab.style.bottom) })); } catch (_err) {} }
+        function setDock(right, bottom) { fab.style.right = `${right}px`; fab.style.bottom = `${bottom}px`; panel.style.right = `${right}px`; panel.style.bottom = `${bottom + 56}px`; }
+        function placeDock(force = false) { const saved = !force && savedDock(); if (saved) return setDock(Math.max(16, saved.right), Math.max(16, Math.min(saved.bottom, innerHeight - 64))); let right = 16, bottom = 16; const controls = [...document.querySelectorAll('button,[role="button"],[data-floating-control]')].filter(el => { if (el.closest(`#${ROOT_ID}`)) return false; const s = getComputedStyle(el), r = el.getBoundingClientRect(); return (s.position === 'fixed' || s.position === 'sticky') && r.right > innerWidth - 220 && r.bottom > innerHeight - 220; }).map(el => el.getBoundingClientRect()); outer: for (let y=16;y<=320;y+=8) for (let x=16;x<=320;x+=8) { const l=innerWidth-x-48,t=innerHeight-y-48; if (!controls.some(r => l < r.right && l+48 > r.left && t < r.bottom && t+48 > r.top)) { right=x; bottom=y; break outer; } } setDock(right,bottom); saveDock(); }
+        function start() { if (document.getElementById(ROOT_ID)) return; rebuildMatcher(); installStyle(); buildUi(); const begin = () => { if (domSafeForHighlight) return; domSafeForHighlight = true; refresh(); }; const afterLoad = () => typeof requestIdleCallback === 'function' ? requestIdleCallback(begin, { timeout: 1200 }) : setTimeout(begin, 400); if (document.readyState === 'complete') afterLoad(); else { addEventListener('load', afterLoad, { once:true }); setTimeout(afterLoad, 2500); } }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
+    }
 
     const CASE_INSENSITIVE = true;
     const WHOLE_WORDS_ONLY = true;
