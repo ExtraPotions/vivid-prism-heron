@@ -1577,10 +1577,11 @@
 
     const observedShadowRoots = new Set();
     function registerShadowRoot(root) {
-        if (!root || observedShadowRoots.has(root)) return;
+        if (!root) return;
+        const known = observedShadowRoots.has(root);
         observedShadowRoots.add(root);
         observer.observe(root, OBSERVER_OPTIONS);
-        processElement(root);
+        if (!known) processElement(root);
     }
 
     function registerShadowRoots(root) {
