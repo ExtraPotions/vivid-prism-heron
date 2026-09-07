@@ -1701,18 +1701,27 @@
     const FAB_POSITION_KEY = 'prism.pride-highlighter.fabBottom';
     const FAB_ICON_URL = 'https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg';
 
-    function savedFabBottom() {
+    function savedFabPosition() {
         try {
-            const value = Number(localStorage.getItem(FAB_POSITION_KEY));
-            return Number.isFinite(value) && value >= FAB_MARGIN ? value : null;
+            const raw = localStorage.getItem(FAB_POSITION_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (parsed && Number.isFinite(parsed.right) && Number.isFinite(parsed.bottom)) {
+                return { right: Math.max(FAB_MARGIN, parsed.right), bottom: Math.max(FAB_MARGIN, parsed.bottom) };
+            }
+            // Migrate the previous bottom-only format without losing the user's placement.
+            const legacyBottom = Number(raw);
+            return Number.isFinite(legacyBottom) && legacyBottom >= FAB_MARGIN
+                ? { right: FAB_MARGIN, bottom: legacyBottom }
+                : null;
         } catch (_err) {
             return null;
         }
     }
 
-    function saveFabBottom(value) {
+    function saveFabPosition(right, bottom) {
         try {
-            localStorage.setItem(FAB_POSITION_KEY, String(value));
+            localStorage.setItem(FAB_POSITION_KEY, JSON.stringify({ right, bottom }));
         } catch (_err) {
             // Position persistence is optional; dragging still works this page.
         }
@@ -1800,12 +1809,13 @@
             return;
         }
 
-        const storedBottom = savedFabBottom();
-        if (storedBottom !== null) {
-            const bottom = Math.min(storedBottom, Math.max(FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN));
-            fabEl.style.right = `${FAB_MARGIN}px`;
+        const storedPosition = savedFabPosition();
+        if (storedPosition !== null) {
+            const right = Math.max(FAB_MARGIN, storedPosition.right);
+            const bottom = Math.min(storedPosition.bottom, Math.max(FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN));
+            fabEl.style.right = `${right}px`;
             fabEl.style.bottom = `${bottom}px`;
-            panelEl.style.right = `${FAB_MARGIN}px`;
+            panelEl.style.right = `${right}px`;
             panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
             return;
         }
@@ -1852,6 +1862,8 @@
         fabEl.style.bottom = `${chosenBottom}px`;
         panelEl.style.right = `${chosenRight}px`;
         panelEl.style.bottom = `${chosenBottom + FAB_SIZE + FAB_GAP}px`;
+        // Remember the first safe slot so newly appearing controls cannot move the dock.
+        saveFabPosition(chosenRight, chosenBottom);
     }
 
     let fabPlaceTimer = null;
@@ -2010,6 +2022,7 @@
                 return;
             }
             const startY = ev.clientY;
+            const startRight = Number.parseFloat(fabEl.style.right) || FAB_MARGIN;
             const startBottom = Number.parseFloat(fabEl.style.bottom) || FAB_MARGIN;
             let moved = false;
             fabEl.setPointerCapture(ev.pointerId);
@@ -2031,7 +2044,7 @@
                 delete fabEl.dataset.dragging;
                 if (moved) {
                     fabWasDragged = true;
-                    saveFabBottom(Number.parseFloat(fabEl.style.bottom));
+                    saveFabPosition(startRight, Number.parseFloat(fabEl.style.bottom));
                 }
             };
             fabEl.addEventListener('pointermove', onMove);
