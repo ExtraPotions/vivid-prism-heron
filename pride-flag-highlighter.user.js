@@ -1150,10 +1150,6 @@
   box-shadow: 0 8px 22px rgba(0,0,0,0.38), 0 0 0 2px rgba(122,208,255,0.7);
 }
 #${UI_ROOT_ID} .pfh-fab[data-dragging="1"] { cursor: grabbing; transform: none; }
-#${UI_ROOT_ID} .pfh-quickbar { position: fixed; z-index: 2147483647; display: flex; gap: 3px; padding: 3px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px; background: #12141a; box-shadow: 0 5px 16px rgba(0,0,0,.3); }
-#${UI_ROOT_ID} .pfh-quickbar button { width: 27px; height: 27px; padding: 0; border: 0; border-radius: 6px; background: #1c2230; color: #cfd7e6; cursor: pointer; font: 600 .63rem system-ui, sans-serif; }
-#${UI_ROOT_ID} .pfh-quickbar button[aria-pressed="true"] { color: #10131a; background: linear-gradient(100deg, #ff8fbd, #ffe071, #77dfff); }
-#${UI_ROOT_ID} .pfh-quickbar button:focus-visible { outline: 2px solid #9bdcff; outline-offset: 1px; }
 #${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-panel { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 16px 40px rgba(0,0,0,.65); }
 #${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-switch-track { border: 2px solid #fff; }
 #${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-panel, #${UI_ROOT_ID}[data-pfh-contrast="1"] .pfh-fab { color: #fff; }
@@ -1193,6 +1189,8 @@
   z-index: 2147483647;
   width: min(312px, calc(100vw - 24px));
   max-height: min(68vh, 500px);
+  box-sizing: border-box;
+  overflow-y: auto;
   display: none;
   flex-direction: column;
   gap: 0;
@@ -1592,7 +1590,6 @@
 
     let panelEl = null;
     let fabEl = null;
-    let quickbarEl = null;
     let uiRoot = null;
 
     function applySettings(next, { persist = true } = {}) {
@@ -1617,7 +1614,7 @@
         panelEl.querySelector('#pfh-enabled').checked = settings.enabled;
         panelEl.querySelector('#pfh-style').value = settings.style;
         panelEl.querySelector('#pfh-intensity').value = settings.intensity;
-        uiRoot.querySelectorAll('.pfh-quick button, .pfh-quickbar button').forEach(button => {
+        uiRoot.querySelectorAll('.pfh-quick button').forEach(button => {
             button.setAttribute('aria-pressed', button.dataset.style === settings.style ? 'true' : 'false');
         });
         panelEl.querySelector('#pfh-labels').checked = settings.showLabels;
@@ -1810,8 +1807,6 @@
             fabEl.style.bottom = `${bottom}px`;
             panelEl.style.right = `${FAB_MARGIN}px`;
             panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
-            quickbarEl.style.right = `${FAB_MARGIN + FAB_SIZE + FAB_GAP}px`;
-            quickbarEl.style.bottom = `${bottom}px`;
             return;
         }
 
@@ -1857,8 +1852,6 @@
         fabEl.style.bottom = `${chosenBottom}px`;
         panelEl.style.right = `${chosenRight}px`;
         panelEl.style.bottom = `${chosenBottom + FAB_SIZE + FAB_GAP}px`;
-        quickbarEl.style.right = `${chosenRight + FAB_SIZE + FAB_GAP}px`;
-        quickbarEl.style.bottom = `${chosenBottom}px`;
     }
 
     let fabPlaceTimer = null;
@@ -1969,11 +1962,6 @@
         fabImg.draggable = false;
         fabEl.appendChild(fabImg);
 
-        quickbarEl = document.createElement('div');
-        quickbarEl.className = 'pfh-quickbar';
-        quickbarEl.setAttribute('aria-label', 'Quick highlight styles');
-        quickbarEl.innerHTML = '<button type="button" data-style="gradient" aria-label="Gradient text" aria-pressed="false">G</button><button type="button" data-style="underline" aria-label="Underline" aria-pressed="false">U</button><button type="button" data-style="background" aria-label="Soft background" aria-pressed="false">F</button>';
-
         panelEl = document.createElement('div');
         panelEl.className = 'pfh-panel';
         panelEl.id = 'pfh-panel';
@@ -2014,7 +2002,6 @@
 
         uiRoot.appendChild(panelEl);
         uiRoot.appendChild(fabEl);
-        uiRoot.appendChild(quickbarEl);
         (document.body || document.documentElement).appendChild(uiRoot);
 
         let fabWasDragged = false;
@@ -2035,7 +2022,6 @@
                     const bottom = Math.max(FAB_MARGIN, Math.min(maxBottom, startBottom - distance));
                     fabEl.style.bottom = `${bottom}px`;
                     panelEl.style.bottom = `${bottom + FAB_SIZE + FAB_GAP}px`;
-                    quickbarEl.style.bottom = `${bottom}px`;
                 }
             };
             const onEnd = () => {
@@ -2098,13 +2084,6 @@
             panelEl.querySelector('#pfh-style').value = next.style;
             applySettings(next);
         });
-        quickbarEl.addEventListener('click', (event) => {
-            const button = event.target.closest('button[data-style]');
-            if (!button) return;
-            const next = { ...settings, style: button.dataset.style };
-            applySettings(next);
-        });
-
         document.addEventListener('keydown', (ev) => {
             if (ev.key === 'Escape' && panelEl.dataset.open === '1') {
                 setPanelOpen(false);

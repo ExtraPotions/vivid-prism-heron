@@ -51,7 +51,7 @@ Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets).
 - Flag visibility search, tucked into a collapsible section to keep the main panel focused
 - Accessibility: reduced-motion and high-contrast options
 
-Quick style buttons sit beside the dock, so switching styles does not require opening the settings panel. Labels reposition above or align to the viewport edge when needed, and clicking a standalone highlighted word copies its identity label. Automatic dock placement checks nearby fixed, sticky, and corner controls in tight 8px increments. Existing preferences migrate from `pride.flag-highlighter.settings` to `prism.pride-highlighter.settings`. Reset defaults also restores automatic button placement. A short toast appears once after a version update (not on every page load).
+Quick style buttons are grouped inside the settings panel so the dock stays clean. Labels reposition above or align to the viewport edge when needed, and clicking a standalone highlighted word copies its identity label. Automatic dock placement checks nearby fixed, sticky, and corner controls in tight 8px increments. Existing preferences migrate from `pride.flag-highlighter.settings` to `prism.pride-highlighter.settings`. Reset defaults also restores automatic button placement. A short toast appears once after a version update (not on every page load).
 
 ## Customize flags
 
