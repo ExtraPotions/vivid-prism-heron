@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      1.5.0
+// @version      1.5.1
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -940,7 +940,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.5.0';
+    const SCRIPT_VERSION = '1.5.1';
     const SETTINGS_KEY = 'prism.pride-highlighter.settings';
     const LEGACY_SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'prism.pride-highlighter.lastVersion';
@@ -953,6 +953,8 @@
         subtree: true,
         characterData: true
     };
+
+    // False until after load/idle so we do not rewrite DOM during hydration.
 
     const DEFAULT_SETTINGS = Object.freeze({
         enabled: true,
@@ -1442,7 +1444,7 @@
     }
 
     function processTextNode(node) {
-        if (!highlightingActive() || !node?.parentElement) {
+        if (!domSafeForHighlight || !highlightingActive() || !node?.parentElement) {
             return;
         }
 
@@ -1483,7 +1485,14 @@
             fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
         }
 
-        parent.replaceChild(fragment, node);
+        try {
+            if (node.parentNode !== parent) {
+                return;
+            }
+            parent.replaceChild(fragment, node);
+        } catch (_err) {
+            // Framework removed/replaced the node mid-flight — ignore.
+        }
         regex.lastIndex = 0;
     }
 
@@ -1502,7 +1511,7 @@
     }
 
     function processElement(element) {
-        if (!highlightingActive()) {
+        if (!domSafeForHighlight || !highlightingActive()) {
             return;
         }
         if (!element || (element.nodeType !== Node.ELEMENT_NODE && element.nodeType !== Node.DOCUMENT_FRAGMENT_NODE)) {
@@ -1551,12 +1560,20 @@
         }
     }
 
-    const observer = new MutationObserver(mutations => {
-        if (!highlightingActive()) {
+    let pendingMutations = [];
+    let mutationFlushTimer = 0;
+
+    function flushPendingMutations() {
+        mutationFlushTimer = 0;
+        if (!domSafeForHighlight || !highlightingActive()) {
+            pendingMutations = [];
             return;
         }
 
-        for (const mutation of mutations) {
+        const batch = pendingMutations;
+        pendingMutations = [];
+
+        for (const mutation of batch) {
             for (const addedNode of mutation.addedNodes) {
                 if (addedNode.nodeType === Node.ELEMENT_NODE) {
                     if (isUiNode(addedNode)) {
@@ -1573,32 +1590,54 @@
                 processTextNode(mutation.target);
             }
         }
+    }
+
+    const observer = new MutationObserver(mutations => {
+        if (!domSafeForHighlight || !highlightingActive()) {
+            return;
+        }
+
+        pendingMutations.push(...mutations);
+        if (!mutationFlushTimer) {
+            mutationFlushTimer = window.setTimeout(flushPendingMutations, 48);
+        }
     });
 
     const observedShadowRoots = new Set();
     function registerShadowRoot(root) {
-        if (!root) return;
-        const known = observedShadowRoots.has(root);
+        if (!root || observedShadowRoots.has(root)) {
+            return;
+        }
         observedShadowRoots.add(root);
-        observer.observe(root, OBSERVER_OPTIONS);
-        if (!known) processElement(root);
-    }
-
-    function registerShadowRoots(root) {
-        if (!root?.querySelectorAll) return;
-        if (root.shadowRoot) registerShadowRoot(root.shadowRoot);
-        for (const el of root.querySelectorAll('*')) {
-            if (el.shadowRoot) registerShadowRoot(el.shadowRoot);
+        if (domSafeForHighlight) {
+            observer.observe(root, OBSERVER_OPTIONS);
+            processElement(root);
         }
     }
 
-    const nativeAttachShadow = Element.prototype.attachShadow;
-    if (nativeAttachShadow) {
-        Element.prototype.attachShadow = function attachShadow(init) {
-            const root = nativeAttachShadow.call(this, init);
-            registerShadowRoot(root);
-            return root;
-        };
+    // Discover open shadow roots without patching Element.prototype.attachShadow.
+    // Monkey-patching attachShadow at document-start breaks some modern sites.
+    function registerShadowRoots(root) {
+        if (!root) {
+            return;
+        }
+        if (root.nodeType === Node.ELEMENT_NODE && root.shadowRoot) {
+            registerShadowRoot(root.shadowRoot);
+        }
+        if (!root.querySelectorAll) {
+            return;
+        }
+        // Only scan the added subtree's elements that already expose .shadowRoot.
+        // Avoid full-document * walks on every mutation (freezes heavy SPAs).
+        try {
+            for (const el of root.querySelectorAll('*')) {
+                if (el.shadowRoot) {
+                    registerShadowRoot(el.shadowRoot);
+                }
+            }
+        } catch (_err) {
+            // ignore cross-origin / detached trees
+        }
     }
 
     function startObserving() {
@@ -1611,12 +1650,20 @@
 
     function reprocessAll() {
         observer.disconnect();
+        pendingMutations = [];
+        if (mutationFlushTimer) {
+            clearTimeout(mutationFlushTimer);
+            mutationFlushTimer = 0;
+        }
         if (document.body) {
             clearHighlights(document.body);
         }
         for (const root of observedShadowRoots) clearHighlights(root);
         rebuildMatcher();
         installStyle();
+        if (!domSafeForHighlight) {
+            return;
+        }
         if (settings.enabled && !isSiteExcluded()) {
             processPage();
         }
@@ -1800,7 +1847,10 @@
 
     function collectCornerObstacles() {
         const obstacles = [];
-        const nodes = document.body ? document.body.querySelectorAll('*') : [];
+        // Targeted scan — never walk every node on heavy SPAs like Grok.
+        const nodes = document.body
+            ? document.body.querySelectorAll('button,[role="button"],[data-floating-control],a,[class*="float"],[class*="Fab"],[class*="fab"]')
+            : [];
 
         for (const el of nodes) {
             if (isUiNode(el)) {
@@ -2253,10 +2303,50 @@
      * ============================================================
      */
 
+    // Wait until after load + a short idle so React/Next hydration can finish
+    // before we rewrite text nodes. Early DOM edits are a common white-screen cause.
+    let domSafeForHighlight = false;
+
+    function markDomSafeAndHighlight() {
+        if (domSafeForHighlight) {
+            return;
+        }
+        domSafeForHighlight = true;
+        for (const root of observedShadowRoots) {
+            try {
+                observer.observe(root, OBSERVER_OPTIONS);
+                processElement(root);
+            } catch (_err) {
+                // detached
+            }
+        }
+        reprocessAll();
+    }
+
+    function scheduleHighlightStart() {
+        const run = () => markDomSafeAndHighlight();
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(run, { timeout: 1200 });
+        } else {
+            window.setTimeout(run, 400);
+        }
+    }
+
     function start() {
         buildUI();
-        reprocessAll();
+        installStyle();
+        rebuildMatcher();
         maybeShowVersionToast();
+
+        // UI + styles only at DOMContentLoaded. Highlighting waits for load/idle.
+        const afterLoad = () => scheduleHighlightStart();
+        if (document.readyState === 'complete') {
+            afterLoad();
+        } else {
+            window.addEventListener('load', afterLoad, { once: true });
+            // Fallback if load is delayed forever (long-polling SPAs).
+            window.setTimeout(afterLoad, 2500);
+        }
     }
 
     if (document.readyState === 'loading') {
