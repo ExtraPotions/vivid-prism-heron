@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      1.4.1
+// @version      1.5.0
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
 // @match        *://*/*
 // @run-at       document-start
 // @grant        none
+// @noframes
 // @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
@@ -939,7 +940,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.4.1';
+    const SCRIPT_VERSION = '1.5.0';
     const SETTINGS_KEY = 'prism.pride-highlighter.settings';
     const LEGACY_SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'prism.pride-highlighter.lastVersion';
@@ -960,6 +961,7 @@
         showLabels: true,
         reducedMotion: false,
         highContrast: false,
+        visibleOnly: false,
         disabledFlags: Object.freeze([]),
         excludedHosts: Object.freeze([])
     });
@@ -972,6 +974,7 @@
             showLabels: DEFAULT_SETTINGS.showLabels,
             reducedMotion: DEFAULT_SETTINGS.reducedMotion,
             highContrast: DEFAULT_SETTINGS.highContrast,
+            visibleOnly: DEFAULT_SETTINGS.visibleOnly,
             disabledFlags: [],
             excludedHosts: []
         };
@@ -993,6 +996,7 @@
             showLabels: source.showLabels !== false,
             reducedMotion: source.reducedMotion === true,
             highContrast: source.highContrast === true,
+            visibleOnly: source.visibleOnly === true,
             disabledFlags: [...new Set(disabled)],
             excludedHosts: [...new Set(excludedHosts)]
         };
@@ -1182,6 +1186,8 @@
   color: rgba(242,244,248,0.65);
   margin-top: -0.25rem;
 }
+#${UI_ROOT_ID} .pfh-status { color: #8fe3a6; font-size: .72rem; margin-top: 2px; }
+#${UI_ROOT_ID} .pfh-status[data-excluded="1"] { color: #ffb0b0; }
 #${UI_ROOT_ID} .pfh-panel {
   position: fixed;
   right: 16px;
@@ -1486,6 +1492,12 @@
         if (!parent || shouldSkipParent(parent)) {
             return NodeFilter.FILTER_REJECT;
         }
+        if (settings.visibleOnly) {
+            const rect = parent.getBoundingClientRect();
+            if (rect.bottom <= 0 || rect.top >= window.innerHeight || rect.right <= 0 || rect.left >= window.innerWidth) {
+                return NodeFilter.FILTER_REJECT;
+            }
+        }
         return NodeFilter.FILTER_ACCEPT;
     }
 
@@ -1493,7 +1505,7 @@
         if (!highlightingActive()) {
             return;
         }
-        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+        if (!element || (element.nodeType !== Node.ELEMENT_NODE && element.nodeType !== Node.DOCUMENT_FRAGMENT_NODE)) {
             return;
         }
         if (isIgnoredContext(element) || element.classList.contains(HIGHLIGHT_CLASS)) {
@@ -1551,6 +1563,7 @@
                         continue;
                     }
                     processElement(addedNode);
+                    registerShadowRoots(addedNode);
                 } else if (addedNode.nodeType === Node.TEXT_NODE) {
                     processTextNode(addedNode);
                 }
@@ -1562,11 +1575,37 @@
         }
     });
 
+    const observedShadowRoots = new Set();
+    function registerShadowRoot(root) {
+        if (!root || observedShadowRoots.has(root)) return;
+        observedShadowRoots.add(root);
+        observer.observe(root, OBSERVER_OPTIONS);
+        processElement(root);
+    }
+
+    function registerShadowRoots(root) {
+        if (!root?.querySelectorAll) return;
+        if (root.shadowRoot) registerShadowRoot(root.shadowRoot);
+        for (const el of root.querySelectorAll('*')) {
+            if (el.shadowRoot) registerShadowRoot(el.shadowRoot);
+        }
+    }
+
+    const nativeAttachShadow = Element.prototype.attachShadow;
+    if (nativeAttachShadow) {
+        Element.prototype.attachShadow = function attachShadow(init) {
+            const root = nativeAttachShadow.call(this, init);
+            registerShadowRoot(root);
+            return root;
+        };
+    }
+
     function startObserving() {
         if (!document.body) {
             return;
         }
         observer.observe(document.body, OBSERVER_OPTIONS);
+        registerShadowRoots(document.body);
     }
 
     function reprocessAll() {
@@ -1574,6 +1613,7 @@
         if (document.body) {
             clearHighlights(document.body);
         }
+        for (const root of observedShadowRoots) clearHighlights(root);
         rebuildMatcher();
         installStyle();
         if (settings.enabled && !isSiteExcluded()) {
@@ -1620,12 +1660,19 @@
         panelEl.querySelector('#pfh-labels').checked = settings.showLabels;
         panelEl.querySelector('#pfh-reduced-motion').checked = settings.reducedMotion;
         panelEl.querySelector('#pfh-high-contrast').checked = settings.highContrast;
+        panelEl.querySelector('#pfh-visible-only').checked = settings.visibleOnly;
         panelEl.querySelector('#pfh-exclude-site').checked = isSiteExcluded();
 
         const hostNote = panelEl.querySelector('#pfh-host-note');
         if (hostNote) {
             const host = currentHost() || '(unknown host)';
             hostNote.textContent = `Current site: ${host}`;
+        }
+        const status = panelEl.querySelector('#pfh-site-status');
+        if (status) {
+            const excluded = isSiteExcluded();
+            status.textContent = excluded ? 'Highlighting paused on this site' : 'Highlighting active on this site';
+            status.dataset.excluded = excluded ? '1' : '0';
         }
 
         const disabled = new Set(settings.disabledFlags);
@@ -1663,6 +1710,7 @@
             showLabels: panelEl.querySelector('#pfh-labels').checked,
             reducedMotion: panelEl.querySelector('#pfh-reduced-motion').checked,
             highContrast: panelEl.querySelector('#pfh-high-contrast').checked,
+            visibleOnly: panelEl.querySelector('#pfh-visible-only').checked,
             disabledFlags,
             excludedHosts
         };
@@ -1987,9 +2035,9 @@
                 <div class="pfh-section-title">Protection</div>
                 <div class="pfh-row pfh-row-main"><span class="pfh-row-copy">Highlight protection<span class="pfh-row-detail">Enable colour highlighting</span></span>${switchHtml('pfh-enabled', true, 'Enable highlight protection')}</div>
             </div>
-            <div class="pfh-section">
-                <div class="pfh-section-title">This site</div>
-                <div class="pfh-row"><span class="pfh-row-copy">Exclude this site<span class="pfh-row-detail" id="pfh-host-note"></span></span>${switchHtml('pfh-exclude-site', false, 'Exclude this site')}</div>
+        <div class="pfh-section">
+            <div class="pfh-section-title">This site</div>
+                <div class="pfh-row"><span class="pfh-row-copy">Exclude this site<span class="pfh-row-detail" id="pfh-host-note"></span><span class="pfh-status" id="pfh-site-status" role="status"></span></span>${switchHtml('pfh-exclude-site', false, 'Exclude this site')}</div>
             </div>
             <div class="pfh-section">
                 <div class="pfh-section-title">Appearance</div>
@@ -2004,6 +2052,7 @@
                 <details class="pfh-details"><summary>Accessibility</summary>
                     <div class="pfh-row"><span>Reduce motion</span>${switchHtml('pfh-reduced-motion', false, 'Reduce motion')}</div>
                     <div class="pfh-row"><span>High contrast</span>${switchHtml('pfh-high-contrast', false, 'Use high contrast')}</div>
+                    <div class="pfh-row"><span>Only process visible content</span>${switchHtml('pfh-visible-only', false, 'Only process visible content')}</div>
                 </details>
             </div>
             <div class="pfh-actions">
@@ -2082,6 +2131,7 @@
         panelEl.querySelector('#pfh-labels').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-reduced-motion').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-high-contrast').addEventListener('change', onChange);
+        panelEl.querySelector('#pfh-visible-only').addEventListener('change', onChange);
         panelEl.querySelector('.pfh-flags').addEventListener('change', onChange);
         panelEl.querySelector('#pfh-flag-search').addEventListener('input', (event) => {
             const query = event.target.value.trim().toLowerCase();
