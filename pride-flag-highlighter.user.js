@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      1.3.0
+// @version      1.3.1
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -939,7 +939,7 @@
     ]);
 
     const HIGHLIGHT_CLASS = '__pride_flag_highlight';
-    const SCRIPT_VERSION = '1.3.0';
+    const SCRIPT_VERSION = '1.3.1';
     const SETTINGS_KEY = 'prism.pride-highlighter.settings';
     const LEGACY_SETTINGS_KEY = 'pride.flag-highlighter.settings';
     const LAST_VERSION_KEY = 'prism.pride-highlighter.lastVersion';
@@ -1736,7 +1736,10 @@
             return;
         }
 
-        const step = FAB_SIZE + FAB_GAP;
+        // Search in 8px increments so the dock can sit in the nearest open
+        // slot beside another floating control instead of jumping a full
+        // button-width away when the controls are not on the same grid.
+        const step = FAB_GAP;
         const obstacles = collectCornerObstacles();
         let chosenRight = FAB_MARGIN;
         let chosenBottom = FAB_MARGIN;

@@ -17,7 +17,7 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.3.0
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v1.3.1
 
 | Stat | Value |
 |------|-------|
@@ -38,7 +38,7 @@ Optional: open [`demo.html`](demo.html) locally to preview without an extension.
 
 ## Settings
 
-Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets). Its compact 312px settings dock keeps the key controls close at hand. Drag the button up or down to place it where it is most useful; the position is remembered.
+Tap the **48×48** prism button (bottom-right; it avoids nearby corner widgets). Its compact 312px settings dock keeps the key controls close at hand, using tight 8px placement increments to sit near other floating controls. Drag the button up or down to place it where it is most useful; the position is remembered.
 
 - **Highlight protection** — the prominent main switch enables or disables highlighting
 - **Exclude this site** — skip highlights on the current host (the control remains available so you can undo it)
