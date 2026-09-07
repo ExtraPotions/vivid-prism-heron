@@ -17,7 +17,13 @@
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="License: CC BY-NC-SA 4.0" src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?style=flat-square" /></a>
 </p>
 
-**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v2.0.0
+**Author:** [expDARE](https://github.com/ExtraPotions) · **Latest:** v2.0.1
+
+### 2.0.1 menu fixes
+
+The menu now uses the same compact charcoal styling as Theme Picker, with isolated Shadow DOM and constructed stylesheets so website CSS and Scryfall's inline-style policy do not break it. Binary settings are real keyboard-accessible switch buttons, not hidden checkboxes. Reduced motion, system contrast preferences, visible focus outlines, viewport-safe placement and reset/persistence are covered by browser tests. Theme Picker can still recognize and reposition the companion launcher. The in-page SVG icon is embedded; the userscript metadata icon is pinned to this release.
+
+Run `npm install`, `npx playwright install chromium`, then `npm test` for the menu and highlighting regression suite. Tests use hostile page styles and a Scryfall-style CSP across three site fixtures; they are not a claim of exhaustive live-site coverage.
 
 The same compact prism/spark artwork is used for the userscript icon and the in-page dock button. The SVG scales cleanly for both 64×64 and 128×128 displays.
 

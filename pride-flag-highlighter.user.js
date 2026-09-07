@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.0.0
+// @version      2.0.1
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.1/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -937,7 +937,7 @@
     return;
 
     function polishedRuntime(flags) {
-        const VERSION = '2.0.0';
+        const VERSION = '2.0.1';
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
         const POSITION_KEY = 'prism.pride-highlighter.dock-position';
@@ -952,7 +952,7 @@
         let settings = loadSettings();
         let matcher = null;
         let wordMap = new Map();
-        let uiRoot, fab, panel, styleNode;
+        let uiRoot, fab, panel, uiShadow, highlightSheet, menuSheet;
         let scanTimer = 0;
         let domSafeForHighlight = false;
         let pendingMutations = [];
@@ -1018,8 +1018,36 @@
         }
 
         function installStyle() {
-            if (!styleNode) { styleNode = document.createElement('style'); document.documentElement.appendChild(styleNode); }
-            styleNode.textContent = css();
+            if (!highlightSheet) {
+                const source = css(), split = source.indexOf(`#${ROOT_ID}`);
+                highlightSheet = new CSSStyleSheet(); highlightSheet.replaceSync(source.slice(0, split));
+                menuSheet = new CSSStyleSheet();
+                menuSheet.replaceSync(source.slice(split).replaceAll(`#${ROOT_ID}`, ':host').replace(/:host(\[[^\]]+\])/g,':host($1)') + `
+                  :host{position:fixed;width:48px;height:48px;z-index:2147483647;pointer-events:none;color-scheme:dark}
+                  *,*::before,*::after{box-sizing:border-box} [hidden]{display:none!important}
+                  .pph-panel{font:13px/1.4 system-ui,sans-serif!important;background:#282826!important;color:#e5e5e0!important;pointer-events:auto;max-height:calc(100dvh - 84px)!important}
+                  :host .pph-fab{position:absolute;inset:0;pointer-events:auto}
+                  :host .pph-fab svg{display:block;width:100%;height:100%;pointer-events:none}
+                  :host .pph-actions{background:#282826}
+                  :host button,:host select,:host input{font:12px/1.4 system-ui,sans-serif;text-shadow:none;box-shadow:none}
+                  :host button:not(.pph-switch):not(.pph-fab){cursor:pointer}
+                  :host select{max-width:155px}
+                  :host .pph-switch{appearance:none;position:relative;display:block;width:36px;height:20px;padding:0;border:1px solid #8d95a1;border-radius:99px;background:#596171;color:#fff;flex:0 0 36px}
+                  :host .pph-switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+                  :host .pph-switch[aria-checked=true]{background:linear-gradient(90deg,#e66aa1,#67cfff,#a185f5)}
+                  :host .pph-switch[aria-checked=true]::after{transform:translateX(16px)}
+                  :host([data-motion="1"]) *::before,:host([data-motion="1"]) *::after{transition:none!important;animation:none!important}
+                  @media(prefers-reduced-motion:reduce){:host *::before,:host *::after{transition:none!important;animation:none!important}}
+                  :host :is(button,select,input,summary):focus-visible{outline:2px solid #9bdcff;outline-offset:2px}
+                  :host input::placeholder{color:#c3cad6;opacity:1}
+                  :host([data-contrast="1"]) .pph-switch{background:#000;border-color:#fff}
+                  :host([data-contrast="1"]) .pph-switch[aria-checked=true]{background:#fff}
+                  :host([data-contrast="1"]) .pph-switch[aria-checked=true]::after{background:#000}
+                  @media(prefers-contrast:more){:host .pph-panel{border:2px solid white}:host .pph-switch{background:#000;border-color:#fff}:host .pph-switch[aria-checked=true]{background:#fff}:host .pph-switch[aria-checked=true]::after{background:#000}}
+                  @media(forced-colors:active){:host .pph-panel{background:Canvas!important;color:CanvasText!important}:host .pph-switch{forced-color-adjust:none;background:Canvas;border-color:ButtonText}:host .pph-switch::after{background:ButtonText}:host .pph-switch[aria-checked=true]{background:Highlight}:host .pph-switch[aria-checked=true]::after{background:HighlightText}}
+                `);
+            }
+            if (!document.adoptedStyleSheets.includes(highlightSheet)) document.adoptedStyleSheets = [...document.adoptedStyleSheets, highlightSheet];
         }
         function ignored(parent) {
             return !parent || ignoredTags.has(parent.tagName) || parent.isContentEditable || Boolean(parent.closest(`#${ROOT_ID}, .${HIT}, form, [contenteditable="true"]`));
@@ -1058,20 +1086,27 @@
         }
         function clear(root) { if (!root?.querySelectorAll) return; for (const span of root.querySelectorAll(`.${HIT}`)) { span.replaceWith(document.createTextNode(span.textContent || '')); span.parentNode?.normalize(); } }
         function discoverShadowRoots(root) { if (!root?.querySelectorAll) return; if (root.shadowRoot) observeRoot(root.shadowRoot); for (const el of root.querySelectorAll('*')) if (el.shadowRoot) observeRoot(el.shadowRoot); }
-        function observeRoot(root) { if (!root) return; roots.add(root); observer.observe(root, { childList:true, subtree:true, characterData:true }); scan(root); }
+        function observeRoot(root) { if (!root || root===uiShadow || root.host?.matches('#theme-picker-root') || roots.has(root)) return; roots.add(root); if(!root.adoptedStyleSheets.includes(highlightSheet))root.adoptedStyleSheets=[...root.adoptedStyleSheets,highlightSheet]; observer.observe(root, { childList:true, subtree:true, characterData:true }); scan(root); }
         function flushMutations() { mutationTimer = 0; if (!active()) { pendingMutations = []; return; } const batch = pendingMutations; pendingMutations = []; for (const mutation of batch) { if (mutation.type === 'characterData') processText(mutation.target); for (const node of mutation.addedNodes) { if (node.nodeType === Node.TEXT_NODE) processText(node); if (node.nodeType === Node.ELEMENT_NODE && node.id !== ROOT_ID) scan(node); } } }
         function onMutations(mutations) { if (!active()) return; pendingMutations.push(...mutations); if (!mutationTimer) mutationTimer = window.setTimeout(flushMutations, 48); }
         function refresh() { observer.disconnect(); pendingMutations = []; if (mutationTimer) { clearTimeout(mutationTimer); mutationTimer = 0; } clear(document.body); for (const root of roots) clear(root); rebuildMatcher(); installStyle(); if (!domSafeForHighlight) { syncUi(); return; } if (active()) scan(document.body); observer.observe(document.body, { childList:true, subtree:true, characterData:true }); for (const root of roots) observer.observe(root, { childList:true, subtree:true, characterData:true }); syncUi(); }
         function scheduleVisibleScan() { if (!settings.visibleOnly || scanTimer) return; scanTimer = requestAnimationFrame(() => { scanTimer = 0; scan(document.body); }); }
 
-        function switchMarkup(id, checked, label) { return `<label class="pph-switch"><input id="${id}" type="checkbox" ${checked ? 'checked' : ''} aria-label="${label}"><span class="pph-track" aria-hidden="true"></span></label>`; }
+        function switchMarkup(id, checked, label) { return `<button class="pph-switch" id="${id}" type="button" role="switch" aria-checked="${checked}" aria-label="${label}"></button>`; }
         function flagMarkup() { return flags.map(flag => `<label class="pph-flag"><span><i class="pph-swatch" style="--swatch:linear-gradient(180deg,${flag.colors.join(',')})"></i>${flag.label}</span>${switchMarkup(`pph-flag-${flag.id}`, !settings.disabledFlags.includes(flag.id), `Show ${flag.label}`)}</label>`).join(''); }
         function buildUi() {
-            uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID;
-            fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false'); fab.innerHTML = '<img alt="" src="https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg">';
-            panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.setAttribute('aria-label', 'Prism Pride Highlighter settings');
+            uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID; uiRoot.className='pfh-fab';
+            uiRoot.style.cssText='all:initial!important;position:fixed!important;width:48px!important;height:48px!important;z-index:2147483647!important;pointer-events:none!important';
+            uiShadow=uiRoot.attachShadow({mode:'open'});uiShadow.adoptedStyleSheets=[menuSheet];
+            fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false');
+            // Inline copy of the repository icon: no image request or CSP dependency.
+            fab.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="refraction" x1="12" y1="11" x2="52" y2="53" gradientUnits="userSpaceOnUse"><stop stop-color="#ff4f9a"/><stop offset=".3" stop-color="#ffd54a"/><stop offset=".56" stop-color="#55d6ff"/><stop offset=".78" stop-color="#8d6cff"/><stop offset="1" stop-color="#ff6aa2"/></linearGradient><linearGradient id="facet" x1="21" y1="18" x2="42" y2="43" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset="1" stop-color="#dce8ff"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="#121722"/><path d="M32 10 37 27 54 32 37 37 32 54 27 37 10 32 27 27Z" fill="url(#refraction)"/><path d="m32 17 4.7 11.3L47 32l-10.3 3.7L32 47l-4.7-11.3L17 32l10.3-3.7Z" fill="url(#facet)"/><path d="m32 20 2.8 9.2L44 32l-9.2 2.8L32 44l-2.8-9.2L20 32l9.2-2.8Z" fill="#f8fbff"/></svg>`;
+            panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.id='pph-panel';panel.setAttribute('role','dialog'); panel.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-controls',panel.id);
             panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><footer class="pph-actions"><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
-            uiRoot.append(panel, fab); (document.body || document.documentElement).append(uiRoot); placeDock(); bindUi(); syncUi();
+            for(const button of panel.querySelectorAll('[role=switch]'))Object.defineProperty(button,'checked',{get(){return this.getAttribute('aria-checked')==='true';},set(value){this.setAttribute('aria-checked',String(Boolean(value)));}});
+            panel.querySelector('#pph-style').setAttribute('aria-label','Highlight style');panel.querySelector('#pph-intensity').setAttribute('aria-label','Intensity');
+            uiShadow.append(panel, fab); (document.body || document.documentElement).append(uiRoot); placeDock(); bindUi(); syncUi();
+            new MutationObserver(positionPanel).observe(uiRoot,{attributes:true,attributeFilter:['style']});
         }
         function readUi() {
             const disabled = flags.filter(flag => !panel.querySelector(`#pph-flag-${CSS.escape(flag.id)}`)?.checked).map(flag => flag.id);
@@ -1083,11 +1118,13 @@
             if (!panel) return; uiRoot.dataset.contrast = settings.highContrast ? '1' : '0'; uiRoot.dataset.motion = settings.reducedMotion ? '1' : '0';
             panel.querySelector('#pph-enabled').checked = settings.enabled; panel.querySelector('#pph-exclude').checked = excluded(); panel.querySelector('#pph-style').value = settings.style; panel.querySelector('#pph-intensity').value = settings.intensity; panel.querySelector('#pph-labels').checked = settings.labels; panel.querySelector('#pph-visible').checked = settings.visibleOnly; panel.querySelector('#pph-motion').checked = settings.reducedMotion; panel.querySelector('#pph-contrast').checked = settings.highContrast;
             panel.querySelectorAll('.pph-quick button').forEach(button => button.setAttribute('aria-pressed', button.dataset.style === settings.style ? 'true' : 'false'));
+            for(const flag of flags)panel.querySelector(`#pph-flag-${CSS.escape(flag.id)}`).checked=!settings.disabledFlags.includes(flag.id);
             panel.querySelector('#pph-host').textContent = `Current site: ${host() || '(unknown)'}`; const status = panel.querySelector('#pph-status'); status.textContent = excluded() ? 'Highlighting paused on this site' : 'Highlighting active on this site'; status.dataset.excluded = excluded() ? '1' : '0';
         }
         function bindUi() {
             fab.addEventListener('click', event => { if (fab.dataset.dragged === '1') { delete fab.dataset.dragged; return; } togglePanel(panel.dataset.open !== '1'); });
             panel.addEventListener('change', () => apply(readUi()));
+            panel.addEventListener('click',event=>{const button=event.target.closest('[role=switch]');if(button){button.checked=!button.checked;apply(readUi());}});
             panel.querySelector('.pph-quick').addEventListener('click', event => { const button = event.target.closest('button[data-style]'); if (!button) return; panel.querySelector('#pph-style').value = button.dataset.style; apply(readUi()); });
             panel.querySelector('#pph-search').addEventListener('input', event => { const query = event.target.value.trim().toLowerCase(); panel.querySelectorAll('.pph-flag').forEach(row => row.hidden = Boolean(query) && !row.textContent.toLowerCase().includes(query)); });
             panel.querySelector('#pph-close').addEventListener('click', () => togglePanel(false));
@@ -1096,12 +1133,17 @@
             fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = parseFloat(fab.style.bottom) || 16; moved = false; fab.setPointerCapture(event.pointerId); });
             fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(parseFloat(fab.style.right) || 16, bottom); });
             fab.addEventListener('pointerup', event => { if (!fab.hasPointerCapture(event.pointerId)) return; fab.releasePointerCapture(event.pointerId); if (moved) { fab.dataset.dragged = '1'; saveDock(); } });
-            document.addEventListener('keydown', event => { if (event.key === 'Escape') togglePanel(false); }); window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { if (settings.visibleOnly) scheduleVisibleScan(); });
+            panel.addEventListener('toggle',positionPanel,true);
+            document.addEventListener('pointerdown',event=>{if(panel.dataset.open==='1'&&!event.composedPath().includes(uiRoot))togglePanel(false);});
+            document.addEventListener('keydown', event => { if (event.key === 'Escape'&&panel.dataset.open==='1') togglePanel(false); });
+            panel.addEventListener('keydown',event=>{if(event.key!=='Tab')return;const items=[...panel.querySelectorAll('button,select,input,summary')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(event.shiftKey&&uiShadow.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&uiShadow.activeElement===last){event.preventDefault();first.focus();}});
+            window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { placeDock(); if (settings.visibleOnly) scheduleVisibleScan(); });
         }
-        function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false');positionPanel(); if(open)panel.querySelector('button').focus();else fab.focus(); }
         function savedDock() { try { const value = JSON.parse(localStorage.getItem(POSITION_KEY)); return Number.isFinite(value?.right) && Number.isFinite(value?.bottom) ? value : null; } catch (_err) { return null; } }
         function saveDock() { try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: parseFloat(fab.style.right), bottom: parseFloat(fab.style.bottom) })); } catch (_err) {} }
-        function setDock(right, bottom) { fab.style.right = `${right}px`; fab.style.bottom = `${bottom}px`; panel.style.right = `${right}px`; panel.style.bottom = `${bottom + 56}px`; }
+        function positionPanel(){if(!panel||!uiRoot)return;const r=uiRoot.getBoundingClientRect();panel.style.right=`${Math.max(12,Math.min(innerWidth-r.right,innerWidth-324))}px`;panel.style.bottom='auto';panel.style.top=`${Math.max(12,Math.min(r.top-panel.offsetHeight-8,innerHeight-panel.offsetHeight-12))}px`;}
+        function setDock(right, bottom) { right=Math.max(12,Math.min(right,innerWidth-60));bottom=Math.max(12,Math.min(bottom,innerHeight-60));fab.style.right = `${right}px`; fab.style.bottom = `${bottom}px`;uiRoot.style.setProperty('right',`${right}px`,'important');uiRoot.style.setProperty('bottom',`${bottom}px`,'important');uiRoot.style.removeProperty('left');uiRoot.style.removeProperty('top'); positionPanel(); }
         function placeDock(force = false) { const saved = !force && savedDock(); if (saved) return setDock(Math.max(16, saved.right), Math.max(16, Math.min(saved.bottom, innerHeight - 64))); let right = 16, bottom = 16; const controls = [...document.querySelectorAll('button,[role="button"],[data-floating-control]')].filter(el => { if (el.closest(`#${ROOT_ID}`)) return false; const s = getComputedStyle(el), r = el.getBoundingClientRect(); return (s.position === 'fixed' || s.position === 'sticky') && r.right > innerWidth - 220 && r.bottom > innerHeight - 220; }).map(el => el.getBoundingClientRect()); outer: for (let y=16;y<=320;y+=8) for (let x=16;x<=320;x+=8) { const l=innerWidth-x-48,t=innerHeight-y-48; if (!controls.some(r => l < r.right && l+48 > r.left && t < r.bottom && t+48 > r.top)) { right=x; bottom=y; break outer; } } setDock(right,bottom); saveDock(); }
         function start() { if (document.getElementById(ROOT_ID)) return; rebuildMatcher(); installStyle(); buildUi(); const begin = () => { if (domSafeForHighlight) return; domSafeForHighlight = true; refresh(); }; const afterLoad = () => typeof requestIdleCallback === 'function' ? requestIdleCallback(begin, { timeout: 1200 }) : setTimeout(begin, 400); if (document.readyState === 'complete') afterLoad(); else { addEventListener('load', afterLoad, { once:true }); setTimeout(afterLoad, 2500); } }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
