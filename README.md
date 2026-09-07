@@ -5,6 +5,12 @@
 </p>
 
 <p align="center">
+  <img src="prism-pride-highlighter.svg" width="64" height="64" alt="Prism Pride Highlighter icon at 64×64" />
+  &nbsp;&nbsp;
+  <img src="prism-pride-highlighter.svg" width="128" height="128" alt="Prism Pride Highlighter icon at 128×128" />
+</p>
+
+<p align="center">
   Reveal LGBTQ+ identity words with their pride-flag colours — gradient text or underlines, hover labels, and a compact settings panel.
 </p>
 
