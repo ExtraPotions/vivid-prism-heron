@@ -1068,7 +1068,7 @@
         function flagMarkup() { return flags.map(flag => `<label class="pph-flag"><span><i class="pph-swatch" style="--swatch:linear-gradient(180deg,${flag.colors.join(',')})"></i>${flag.label}</span>${switchMarkup(`pph-flag-${flag.id}`, !settings.disabledFlags.includes(flag.id), `Show ${flag.label}`)}</label>`).join(''); }
         function buildUi() {
             uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID;
-            fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false'); fab.innerHTML = '<img alt="" src="https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg">';
+            fab = document.createElement('button'); fab.className = 'pph-fab'; fab.id = 'pfh-fab'; fab.setAttribute('data-floating-control', 'companion'); fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false'); fab.innerHTML = '<img alt="" src="https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/main/prism-pride-highlighter.svg">';
             panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.setAttribute('aria-label', 'Prism Pride Highlighter settings');
             panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><footer class="pph-actions"><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
             uiRoot.append(panel, fab); (document.body || document.documentElement).append(uiRoot); placeDock(); bindUi(); syncUi();
@@ -1093,15 +1093,42 @@
             panel.querySelector('#pph-close').addEventListener('click', () => togglePanel(false));
             panel.querySelector('#pph-reset').addEventListener('click', () => { settings = { ...defaults, disabledFlags: [], excludedHosts: [] }; try { localStorage.removeItem(POSITION_KEY); } catch (_err) {} save(); placeDock(true); refresh(); });
             let startY = 0, startBottom = 0, moved = false;
-            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = parseFloat(fab.style.bottom) || 16; moved = false; fab.setPointerCapture(event.pointerId); });
-            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(parseFloat(fab.style.right) || 16, bottom); });
+            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = innerHeight - fab.getBoundingClientRect().bottom; moved = false; fab.setPointerCapture(event.pointerId); });
+            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(innerWidth - fab.getBoundingClientRect().right, bottom); });
             fab.addEventListener('pointerup', event => { if (!fab.hasPointerCapture(event.pointerId)) return; fab.releasePointerCapture(event.pointerId); if (moved) { fab.dataset.dragged = '1'; saveDock(); } });
-            document.addEventListener('keydown', event => { if (event.key === 'Escape') togglePanel(false); }); window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { if (settings.visibleOnly) scheduleVisibleScan(); });
+            fab.addEventListener('pointercancel', () => { moved = false; delete fab.dataset.dragged; });
+            const companionObserver = new MutationObserver(positionPanel);
+            companionObserver.observe(fab, { attributes: true, attributeFilter: ['style'] });
+            panel.addEventListener('toggle', positionPanel, true);
+            window.addEventListener('resize', positionPanel);
+            document.addEventListener('pointerdown', event => { if (panel.dataset.open === '1' && !event.composedPath().includes(uiRoot)) togglePanel(false); });
+            document.addEventListener('keydown', event => { if (event.key === 'Escape' && panel.dataset.open === '1') togglePanel(false); }); window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { if (settings.visibleOnly) scheduleVisibleScan(); });
         }
-        function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        function togglePanel(open) {
+            panel.dataset.open = open ? '1' : '0';
+            fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+            positionPanel();
+            if (open) panel.querySelector('button,select,input')?.focus({ preventScroll: true });
+            else fab.focus({ preventScroll: true });
+        }
+        function positionPanel() {
+            if (panel.dataset.open !== '1') return;
+            const anchor = fab.getBoundingClientRect();
+            panel.style.maxHeight = Math.max(100, innerHeight - 24) + 'px';
+            panel.style.bottom = 'auto';
+            panel.style.right = Math.max(12, Math.min(innerWidth - panel.offsetWidth - 12, innerWidth - anchor.right)) + 'px';
+            panel.style.top = Math.max(12, Math.min(anchor.top - panel.offsetHeight - 8, innerHeight - panel.offsetHeight - 12)) + 'px';
+        }
         function savedDock() { try { const value = JSON.parse(localStorage.getItem(POSITION_KEY)); return Number.isFinite(value?.right) && Number.isFinite(value?.bottom) ? value : null; } catch (_err) { return null; } }
-        function saveDock() { try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: parseFloat(fab.style.right), bottom: parseFloat(fab.style.bottom) })); } catch (_err) {} }
-        function setDock(right, bottom) { fab.style.right = `${right}px`; fab.style.bottom = `${bottom}px`; panel.style.right = `${right}px`; panel.style.bottom = `${bottom + 56}px`; }
+        function saveDock() { const rect = fab.getBoundingClientRect(); try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: innerWidth - rect.right, bottom: innerHeight - rect.bottom })); } catch (_err) {} }
+        function setDock(right, bottom) {
+            // Clear companion overrides before an explicit user drag or reset.
+            fab.style.removeProperty('left');
+            fab.style.removeProperty('top');
+            fab.style.setProperty('right', Math.max(8, Math.min(right, innerWidth - 56)) + 'px');
+            fab.style.setProperty('bottom', Math.max(8, Math.min(bottom, innerHeight - 56)) + 'px');
+            positionPanel();
+        }
         function placeDock(force = false) { const saved = !force && savedDock(); if (saved) return setDock(Math.max(16, saved.right), Math.max(16, Math.min(saved.bottom, innerHeight - 64))); let right = 16, bottom = 16; const controls = [...document.querySelectorAll('button,[role="button"],[data-floating-control]')].filter(el => { if (el.closest(`#${ROOT_ID}`)) return false; const s = getComputedStyle(el), r = el.getBoundingClientRect(); return (s.position === 'fixed' || s.position === 'sticky') && r.right > innerWidth - 220 && r.bottom > innerHeight - 220; }).map(el => el.getBoundingClientRect()); outer: for (let y=16;y<=320;y+=8) for (let x=16;x<=320;x+=8) { const l=innerWidth-x-48,t=innerHeight-y-48; if (!controls.some(r => l < r.right && l+48 > r.left && t < r.bottom && t+48 > r.top)) { right=x; bottom=y; break outer; } } setDock(right,bottom); saveDock(); }
         function start() { if (document.getElementById(ROOT_ID)) return; rebuildMatcher(); installStyle(); buildUi(); const begin = () => { if (domSafeForHighlight) return; domSafeForHighlight = true; refresh(); }; const afterLoad = () => typeof requestIdleCallback === 'function' ? requestIdleCallback(begin, { timeout: 1200 }) : setTimeout(begin, 400); if (document.readyState === 'complete') afterLoad(); else { addEventListener('load', afterLoad, { once:true }); setTimeout(afterLoad, 2500); } }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
