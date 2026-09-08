@@ -42,4 +42,4 @@ jobs:
             prism-pride-highlighter-64.svg \
             prism-pride-highlighter-128.svg \
             --title "Prism Pride Highlighter $TAG" \
-            --notes "Adds the unified userscript launcher coordination protocol with explicit ownership, priority, preferred placement, live occupied-area publication, and change events. Prism identifies itself as a companion and yields predictably to primary controls. Browser validation covers coordination metadata, matching, persistence, keyboard access, ManaPool, Scryfall, SteamGifts, strict CSP, and mobile layout."
+            --notes "Adds configurable keyboard shortcuts with an Off option, editable-field protection, normalized combinations, persistence, and live collision detection through the launcher protocol. Browser validation covers rebinding, disabling, collision metadata, matching, persistence, ManaPool, Scryfall, SteamGifts, strict CSP, and mobile layout."
