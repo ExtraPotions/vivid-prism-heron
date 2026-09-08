@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.1.0
+// @version      2.1.1
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.0/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.1/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -932,7 +932,8 @@
      * retained verbatim.
      */
     function polishedRuntime(flags) {
-        const VERSION = '2.1.0';
+        const VERSION = '2.1.1';
+        const SETTINGS_SCHEMA = 1;
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
         const POSITION_KEY = 'prism.pride-highlighter.dock-position';
@@ -958,7 +959,12 @@
         function loadSettings() {
             try {
                 const raw = localStorage.getItem(SETTINGS_KEY) || localStorage.getItem(LEGACY_KEY);
-                return normalise(raw ? JSON.parse(raw) : defaults);
+                const parsed = raw ? JSON.parse(raw) : defaults;
+                const migrated = normalise(parsed);
+                if (!parsed || parsed.schemaVersion !== SETTINGS_SCHEMA || !localStorage.getItem(SETTINGS_KEY)) {
+                    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...migrated, schemaVersion: SETTINGS_SCHEMA }));
+                }
+                return migrated;
             } catch (_err) { return { ...defaults, disabledFlags: [], excludedHosts: [] }; }
         }
         function normalise(value) {
@@ -975,9 +981,9 @@
                 excludedHosts: Array.isArray(source.excludedHosts) ? [...new Set(source.excludedHosts.filter(v => typeof v === 'string'))] : []
             };
         }
-        function save() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_err) {} }
+        function save() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, schemaVersion: SETTINGS_SCHEMA })); } catch (_err) {} }
         function exportSettings() {
-            const payload = { app: 'Prism Pride Highlighter', version: VERSION, settings, dock: savedDock() };
+            const payload = { app: 'Prism Pride Highlighter', version: VERSION, schemaVersion: SETTINGS_SCHEMA, settings, dock: savedDock() };
             const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
             const link = document.createElement('a'); link.href = url; link.download = `prism-pride-highlighter-${VERSION}-settings.json`; link.click();
             setTimeout(() => URL.revokeObjectURL(url), 0); setStatus('Settings exported');
@@ -985,10 +991,14 @@
         async function importSettings(file) {
             try {
                 const payload = JSON.parse(await file.text());
+                if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Invalid settings file');
+                if (payload.app && payload.app !== 'Prism Pride Highlighter') throw new Error('Wrong settings file');
+                const schema = Number(payload.schemaVersion ?? payload.settings?.schemaVersion ?? 0);
+                if (!Number.isInteger(schema) || schema < 0 || schema > SETTINGS_SCHEMA) throw new Error('Unsupported settings schema');
                 const source = payload?.settings && typeof payload.settings === 'object' ? payload.settings : payload;
                 if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid settings file');
                 settings = normalise(source); save();
-                if (payload?.dock && Number.isFinite(payload.dock.right) && Number.isFinite(payload.dock.bottom)) {
+                if (payload?.dock && Number.isFinite(payload.dock.right) && payload.dock.right >= 0 && Number.isFinite(payload.dock.bottom) && payload.dock.bottom >= 0) {
                     localStorage.setItem(POSITION_KEY, JSON.stringify(payload.dock)); placeDock();
                 }
                 refresh(); setStatus('Settings imported');
