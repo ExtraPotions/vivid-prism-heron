@@ -42,4 +42,4 @@ jobs:
             prism-pride-highlighter-64.svg \
             prism-pride-highlighter-128.svg \
             --title "Prism Pride Highlighter $TAG" \
-            --notes "Removes ambiguous bare-word matches while retaining explicit identity names and phrases. Adds Alt+G menu access, settings export/import, and the current version in the panel. Browser validation now covers positive and negative matching examples, backup/restore, keyboard access, Manapool, Scryfall, SteamGifts, strict CSP, and environments without constructable stylesheets."
+            --notes "Adds versioned settings, automatic legacy migration, stricter backup validation, foreign/future-schema rejection, and safe dock-position validation. Browser validation covers migration, persistence, backup/restore, matching, keyboard access, ManaPool, Scryfall, SteamGifts, strict CSP, and environments without constructable stylesheets."
