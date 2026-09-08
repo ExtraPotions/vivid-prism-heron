@@ -42,4 +42,4 @@ jobs:
             prism-pride-highlighter-64.svg \
             prism-pride-highlighter-128.svg \
             --title "Prism Pride Highlighter $TAG" \
-            --notes "Adds a compact About & diagnostics submenu with version, site and page context, active identity and highlight counts, processing time, captured errors, and one-click copy. Browser validation covers the diagnostics UI, matching, persistence, keyboard access, ManaPool, Scryfall, SteamGifts, strict CSP, and mobile layout."
+            --notes "Adds the unified userscript launcher coordination protocol with explicit ownership, priority, preferred placement, live occupied-area publication, and change events. Prism identifies itself as a companion and yields predictably to primary controls. Browser validation covers coordination metadata, matching, persistence, keyboard access, ManaPool, Scryfall, SteamGifts, strict CSP, and mobile layout."
