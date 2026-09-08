@@ -1,0 +1,45 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          node --check pride-flag-highlighter.user.js
+          grep -q "^// @version[[:space:]]*$version$" pride-flag-highlighter.user.js
+          grep -q "const VERSION = '$version';" pride-flag-highlighter.user.js
+          grep -q "\*\*Version $version\*\*" README.md
+          test -f prism-pride-highlighter.svg
+          test -f prism-pride-highlighter-64.svg
+          test -f prism-pride-highlighter-128.svg
+      - name: Publish assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then exit 0; fi
+          gh release create "$TAG" \
+            pride-flag-highlighter.user.js \
+            prism-pride-highlighter.svg \
+            prism-pride-highlighter-64.svg \
+            prism-pride-highlighter-128.svg \
+            --title "Prism Pride Highlighter $TAG" \
+            --notes "Removed the retired legacy runtime and reduced the userscript by roughly 54 KB. Hardened stylesheet installation with deduplicated fallbacks for documents and open Shadow Roots. Browser validation covers Manapool, Scryfall, SteamGifts, strict CSP, and environments without constructable stylesheets."

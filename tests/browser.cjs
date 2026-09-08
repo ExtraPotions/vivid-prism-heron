@@ -7,6 +7,7 @@ const script=fs.readFileSync('pride-flag-highlighter.user.js','utf8');
  try{for(const site of ['manapool','scryfall','steamgifts']){
   const context=await browser.newContext({viewport:{width:1000,height:900}});
   await context.route(`https://${site}.com/**`,r=>r.fulfill({contentType:'text/html',headers:site==='scryfall'?{'Content-Security-Policy':"style-src 'self'; img-src 'self' data:"}:{},body:'<style>button,select,input{background:white!important;color:white!important;padding:50px!important}aside,section{display:inline!important}label{color:red!important}</style><p id="words">lesbian gay bisexual transgender</p>'}));
+  if(site==='steamgifts')await context.addInitScript(()=>{Object.defineProperty(window,'CSSStyleSheet',{value:undefined,configurable:true});});
   await context.addInitScript({content:script});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`https://${site}.com/`);
   const fab=page.getByRole('button',{name:'Prism Pride Highlighter settings',exact:true});
