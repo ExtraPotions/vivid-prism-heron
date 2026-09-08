@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.0.1
+// @version      2.0.2
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.1/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.2/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -937,7 +937,7 @@
     return;
 
     function polishedRuntime(flags) {
-        const VERSION = '2.0.1';
+        const VERSION = '2.0.2';
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
         const POSITION_KEY = 'prism.pride-highlighter.dock-position';
@@ -1029,6 +1029,13 @@
                   :host .pph-fab{position:absolute;inset:0;pointer-events:auto}
                   :host .pph-fab svg{display:block;width:100%;height:100%;pointer-events:none}
                   :host .pph-actions{background:#282826}
+                  :host .pph-panel{width:min(312px,calc(100vw - 32px))}
+                  :host h2{font-size:15px}
+                  :host .pph-row{min-height:34px;line-height:1.4}
+                  :host .pph-row+.pph-row{border-top:1px solid #ffffff0c}
+                  :host .pph-section{padding-top:9px;padding-bottom:9px}
+                  :host details summary{display:list-item;min-height:30px;align-content:center}
+                  :host details summary::after{display:none}
                   :host button,:host select,:host input{font:12px/1.4 system-ui,sans-serif;text-shadow:none;box-shadow:none}
                   :host button:not(.pph-switch):not(.pph-fab){cursor:pointer}
                   :host select{max-width:155px}
@@ -1096,6 +1103,7 @@
         function flagMarkup() { return flags.map(flag => `<label class="pph-flag"><span><i class="pph-swatch" style="--swatch:linear-gradient(180deg,${flag.colors.join(',')})"></i>${flag.label}</span>${switchMarkup(`pph-flag-${flag.id}`, !settings.disabledFlags.includes(flag.id), `Show ${flag.label}`)}</label>`).join(''); }
         function buildUi() {
             uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID; uiRoot.className='pfh-fab'; uiRoot.setAttribute('data-floating-control','companion');
+            uiRoot.dataset.expdareControl='secondary';uiRoot.dataset.expdareDockRoot='secondary';
             uiRoot.style.cssText='all:initial!important;position:fixed!important;width:48px!important;height:48px!important;z-index:2147483647!important;pointer-events:none!important';
             uiShadow=uiRoot.attachShadow({mode:'open'});uiShadow.adoptedStyleSheets=[menuSheet];
             fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false');
