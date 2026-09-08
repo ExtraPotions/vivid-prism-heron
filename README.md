@@ -4,7 +4,7 @@
 
 Reveal LGBTQ+ identity words with their pride-flag colours, hover labels and a compact settings menu.
 
-**Version 2.0.2** · By [expDARE](https://github.com/ExtraPotions)
+**Version 2.0.3** · By [expDARE](https://github.com/ExtraPotions)
 
 ## Features
 

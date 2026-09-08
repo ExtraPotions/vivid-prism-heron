@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.0.2
+// @version      2.0.3
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.2/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.3/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -937,7 +937,7 @@
     return;
 
     function polishedRuntime(flags) {
-        const VERSION = '2.0.2';
+        const VERSION = '2.0.3';
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
         const POSITION_KEY = 'prism.pride-highlighter.dock-position';
@@ -1138,8 +1138,9 @@
             panel.querySelector('#pph-close').addEventListener('click', () => togglePanel(false));
             panel.querySelector('#pph-reset').addEventListener('click', () => { settings = { ...defaults, disabledFlags: [], excludedHosts: [] }; try { localStorage.removeItem(POSITION_KEY); } catch (_err) {} save(); placeDock(true); refresh(); });
             let startY = 0, startBottom = 0, moved = false;
-            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; startY = event.clientY; startBottom = innerHeight - fab.getBoundingClientRect().bottom; moved = false; fab.setPointerCapture(event.pointerId); });
-            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(innerWidth - fab.getBoundingClientRect().right, bottom); });
+            let startRight = 16;
+            fab.addEventListener('pointerdown', event => { if (event.button !== 0) return; const hostRect = uiRoot.getBoundingClientRect(); startY = event.clientY; startRight = Math.max(16, innerWidth - hostRect.right); startBottom = innerHeight - hostRect.bottom; moved = false; fab.setPointerCapture(event.pointerId); });
+            fab.addEventListener('pointermove', event => { if (!fab.hasPointerCapture(event.pointerId)) return; const delta = event.clientY - startY; if (Math.abs(delta) < 4) return; moved = true; const bottom = Math.max(16, Math.min(innerHeight - 64, startBottom - delta)); setDock(startRight, bottom); });
             fab.addEventListener('pointerup', event => { if (!fab.hasPointerCapture(event.pointerId)) return; fab.releasePointerCapture(event.pointerId); if (moved) { fab.dataset.dragged = '1'; saveDock(); } });
             fab.addEventListener('pointercancel', () => { moved = false; delete fab.dataset.dragged; });
             panel.addEventListener('toggle',positionPanel,true);
@@ -1152,7 +1153,7 @@
         function savedDock() { try { const value = JSON.parse(localStorage.getItem(POSITION_KEY)); return Number.isFinite(value?.right) && Number.isFinite(value?.bottom) ? value : null; } catch (_err) { return null; } }
         function saveDock() { const rect=uiRoot.getBoundingClientRect();try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: innerWidth-rect.right, bottom: innerHeight-rect.bottom })); } catch (_err) {} }
         function positionPanel(){if(!panel||!uiRoot)return;const r=uiRoot.getBoundingClientRect();panel.style.right=`${Math.max(12,Math.min(innerWidth-r.right,innerWidth-324))}px`;panel.style.bottom='auto';panel.style.top=`${Math.max(12,Math.min(r.top-panel.offsetHeight-8,innerHeight-panel.offsetHeight-12))}px`;}
-        function setDock(right, bottom) { right=Math.max(12,Math.min(right,innerWidth-60));bottom=Math.max(12,Math.min(bottom,innerHeight-60));fab.style.right = `${right}px`; fab.style.bottom = `${bottom}px`;uiRoot.style.setProperty('right',`${right}px`,'important');uiRoot.style.setProperty('bottom',`${bottom}px`,'important');uiRoot.style.removeProperty('left');uiRoot.style.removeProperty('top'); positionPanel(); }
+        function setDock(right, bottom) { right=Math.max(12,Math.min(right,innerWidth-60));bottom=Math.max(12,Math.min(bottom,innerHeight-60));fab.style.removeProperty('right');fab.style.removeProperty('bottom');uiRoot.style.setProperty('right',`${right}px`,'important');uiRoot.style.setProperty('bottom',`${bottom}px`,'important');uiRoot.style.removeProperty('left');uiRoot.style.removeProperty('top'); positionPanel(); }
         function placeDock(force = false) { const saved = !force && savedDock(); if (saved) return setDock(Math.max(16, saved.right), Math.max(16, Math.min(saved.bottom, innerHeight - 64))); let right = 16, bottom = 16; const controls = [...document.querySelectorAll('button,[role="button"],[data-floating-control]')].filter(el => { if (el.closest(`#${ROOT_ID}`)) return false; const s = getComputedStyle(el), r = el.getBoundingClientRect(); return (s.position === 'fixed' || s.position === 'sticky') && r.right > innerWidth - 220 && r.bottom > innerHeight - 220; }).map(el => el.getBoundingClientRect()); outer: for (let y=16;y<=320;y+=8) for (let x=16;x<=320;x+=8) { const l=innerWidth-x-48,t=innerHeight-y-48; if (!controls.some(r => l < r.right && l+48 > r.left && t < r.bottom && t+48 > r.top)) { right=x; bottom=y; break outer; } } setDock(right,bottom); saveDock(); }
         function start() { if (document.getElementById(ROOT_ID)) return; rebuildMatcher(); installStyle(); buildUi(); const begin = () => { if (domSafeForHighlight) return; domSafeForHighlight = true; refresh(); }; const afterLoad = () => typeof requestIdleCallback === 'function' ? requestIdleCallback(begin, { timeout: 1200 }) : setTimeout(begin, 400); if (document.readyState === 'complete') afterLoad(); else { addEventListener('load', afterLoad, { once:true }); setTimeout(afterLoad, 2500); } }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
