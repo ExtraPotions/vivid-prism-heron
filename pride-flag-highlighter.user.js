@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.0.3
+// @version      2.0.4
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.3/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.4/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -932,7 +932,7 @@
      * retained verbatim.
      */
     function polishedRuntime(flags) {
-        const VERSION = '2.0.3';
+        const VERSION = '2.0.4';
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
         const POSITION_KEY = 'prism.pride-highlighter.dock-position';
@@ -947,7 +947,7 @@
         let settings = loadSettings();
         let matcher = null;
         let wordMap = new Map();
-        let uiRoot, fab, panel, uiShadow, highlightSheet, menuSheet;
+        let uiRoot, fab, panel, uiShadow, highlightSheet, menuSheet, highlightCssText = '', menuCssText = '';
         let scanTimer = 0;
         let domSafeForHighlight = false;
         let pendingMutations = [];
@@ -1012,12 +1012,23 @@
 `;
         }
 
+        function applyStyle(target, sheet, cssText, key) {
+            if (!target) return;
+            if (sheet && 'adoptedStyleSheets' in target) {
+                try {
+                    if (!target.adoptedStyleSheets.includes(sheet)) target.adoptedStyleSheets = [...target.adoptedStyleSheets, sheet];
+                    return;
+                } catch (_err) {}
+            }
+            const owner = target === document ? (document.head || document.documentElement) : target;
+            if (!owner || owner.querySelector?.(`style[data-pph-style="${key}"]`)) return;
+            const style = document.createElement('style'); style.dataset.pphStyle = key; style.textContent = cssText; owner.append(style);
+        }
         function installStyle() {
-            if (!highlightSheet) {
+            if (!highlightCssText) {
                 const source = css(), split = source.indexOf(`#${ROOT_ID}`);
-                highlightSheet = new CSSStyleSheet(); highlightSheet.replaceSync(source.slice(0, split));
-                menuSheet = new CSSStyleSheet();
-                menuSheet.replaceSync(source.slice(split).replaceAll(`#${ROOT_ID}`, ':host').replace(/:host(\[[^\]]+\])/g,':host($1)') + `
+                highlightCssText = source.slice(0, split);
+                menuCssText = source.slice(split).replaceAll(`#${ROOT_ID}`, ':host').replace(/:host(\[[^\]]+\])/g,':host($1)') + `
                   :host{position:fixed;width:48px;height:48px;z-index:2147483647;pointer-events:none;color-scheme:dark}
                   *,*::before,*::after{box-sizing:border-box} [hidden]{display:none!important}
                   .pph-panel{font:13px/1.4 system-ui,sans-serif!important;background:#282826!important;color:#e5e5e0!important;pointer-events:auto;max-height:calc(100dvh - 84px)!important}
@@ -1047,9 +1058,13 @@
                   :host([data-contrast="1"]) .pph-switch[aria-checked=true]::after{background:#000}
                   @media(prefers-contrast:more){:host .pph-panel{border:2px solid white}:host .pph-switch{background:#000;border-color:#fff}:host .pph-switch[aria-checked=true]{background:#fff}:host .pph-switch[aria-checked=true]::after{background:#000}}
                   @media(forced-colors:active){:host .pph-panel{background:Canvas!important;color:CanvasText!important}:host .pph-switch{forced-color-adjust:none;background:Canvas;border-color:ButtonText}:host .pph-switch::after{background:ButtonText}:host .pph-switch[aria-checked=true]{background:Highlight}:host .pph-switch[aria-checked=true]::after{background:HighlightText}}
-                `);
+                `;
+                if (typeof CSSStyleSheet === 'function' && CSSStyleSheet.prototype?.replaceSync) {
+                    try { highlightSheet = new CSSStyleSheet(); highlightSheet.replaceSync(highlightCssText); menuSheet = new CSSStyleSheet(); menuSheet.replaceSync(menuCssText); }
+                    catch (_err) { highlightSheet = null; menuSheet = null; }
+                }
             }
-            if (!document.adoptedStyleSheets.includes(highlightSheet)) document.adoptedStyleSheets = [...document.adoptedStyleSheets, highlightSheet];
+            applyStyle(document, highlightSheet, highlightCssText, 'document');
         }
         function ignored(parent) {
             return !parent || ignoredTags.has(parent.tagName) || parent.isContentEditable || Boolean(parent.closest(`#${ROOT_ID}, .${HIT}, form, [contenteditable="true"]`));
@@ -1088,7 +1103,7 @@
         }
         function clear(root) { if (!root?.querySelectorAll) return; for (const span of root.querySelectorAll(`.${HIT}`)) { span.replaceWith(document.createTextNode(span.textContent || '')); span.parentNode?.normalize(); } }
         function discoverShadowRoots(root) { if (!root?.querySelectorAll) return; if (root.shadowRoot) observeRoot(root.shadowRoot); for (const el of root.querySelectorAll('*')) if (el.shadowRoot) observeRoot(el.shadowRoot); }
-        function observeRoot(root) { if (!root || root===uiShadow || root.host?.matches('#theme-picker-root') || roots.has(root)) return; roots.add(root); if(!root.adoptedStyleSheets.includes(highlightSheet))root.adoptedStyleSheets=[...root.adoptedStyleSheets,highlightSheet]; observer.observe(root, { childList:true, subtree:true, characterData:true }); scan(root); }
+        function observeRoot(root) { if (!root || root===uiShadow || root.host?.matches('#theme-picker-root') || roots.has(root)) return; roots.add(root); applyStyle(root, highlightSheet, highlightCssText, 'highlight'); observer.observe(root, { childList:true, subtree:true, characterData:true }); scan(root); }
         function flushMutations() { mutationTimer = 0; if (!active()) { pendingMutations = []; return; } const batch = pendingMutations; pendingMutations = []; for (const mutation of batch) { if (mutation.type === 'characterData') processText(mutation.target); for (const node of mutation.addedNodes) { if (node.nodeType === Node.TEXT_NODE) processText(node); if (node.nodeType === Node.ELEMENT_NODE && node.id !== ROOT_ID) scan(node); } } }
         function onMutations(mutations) { if (!active()) return; pendingMutations.push(...mutations); if (!mutationTimer) mutationTimer = window.setTimeout(flushMutations, 48); }
         function refresh() { observer.disconnect(); pendingMutations = []; if (mutationTimer) { clearTimeout(mutationTimer); mutationTimer = 0; } clear(document.body); for (const root of roots) clear(root); rebuildMatcher(); installStyle(); if (!domSafeForHighlight) { syncUi(); return; } if (active()) scan(document.body); observer.observe(document.body, { childList:true, subtree:true, characterData:true }); for (const root of roots) observer.observe(root, { childList:true, subtree:true, characterData:true }); syncUi(); }
@@ -1100,7 +1115,7 @@
             uiRoot = document.createElement('div'); uiRoot.id = ROOT_ID; uiRoot.className='pfh-fab'; uiRoot.setAttribute('data-floating-control','companion');
             uiRoot.dataset.expdareControl='secondary';uiRoot.dataset.expdareDockRoot='secondary';
             uiRoot.style.cssText='all:initial!important;position:fixed!important;width:48px!important;height:48px!important;z-index:2147483647!important;pointer-events:none!important';
-            uiShadow=uiRoot.attachShadow({mode:'open'});uiShadow.adoptedStyleSheets=[menuSheet];
+            uiShadow=uiRoot.attachShadow({mode:'open'});applyStyle(uiShadow, menuSheet, menuCssText, 'menu');
             fab = document.createElement('button'); fab.className = 'pph-fab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-expanded', 'false');
             // Inline copy of the repository icon: no image request or CSP dependency.
             fab.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="refraction" x1="12" y1="11" x2="52" y2="53" gradientUnits="userSpaceOnUse"><stop stop-color="#ff4f9a"/><stop offset=".3" stop-color="#ffd54a"/><stop offset=".56" stop-color="#55d6ff"/><stop offset=".78" stop-color="#8d6cff"/><stop offset="1" stop-color="#ff6aa2"/></linearGradient><linearGradient id="facet" x1="21" y1="18" x2="42" y2="43" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset="1" stop-color="#dce8ff"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="#121722"/><path d="M32 10 37 27 54 32 37 37 32 54 27 37 10 32 27 27Z" fill="url(#refraction)"/><path d="m32 17 4.7 11.3L47 32l-10.3 3.7L32 47l-4.7-11.3L17 32l10.3-3.7Z" fill="url(#facet)"/><path d="m32 20 2.8 9.2L44 32l-9.2 2.8L32 44l-2.8-9.2L20 32l9.2-2.8Z" fill="#f8fbff"/></svg>`;
