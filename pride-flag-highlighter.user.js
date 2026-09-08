@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.0.4
+// @version      2.1.0
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.0.4/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.0/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -47,7 +47,7 @@
         {
             id: 'rainbow',
             label: 'Rainbow / LGBTQ+',
-            words: ['queer', 'lgbtq', 'lgbtq+', 'lgbt', 'lgbt+', 'lgbtqia', 'lgbtqia+', 'pride'],
+            words: ['queer', 'lgbtq', 'lgbtq+', 'lgbt', 'lgbt+', 'lgbtqia', 'lgbtqia+', 'pride flag', 'pride flags'],
             colors: [
                 '#E40303',
                 '#FF8C00',
@@ -131,7 +131,7 @@
         {
             id: 'bisexual',
             label: 'Bisexual',
-            words: ['bisexual', 'bi'],
+            words: ['bisexual'],
             colors: [
                 '#D60270',
                 '#D60270',
@@ -145,7 +145,7 @@
         {
             id: 'pansexual',
             label: 'Pansexual',
-            words: ['pansexual', 'pan'],
+            words: ['pansexual'],
             colors: [
                 '#FF218C',
                 '#FFD800',
@@ -157,7 +157,7 @@
         {
             id: 'transgender',
             label: 'Transgender',
-            words: ['transgender', 'trans'],
+            words: ['transgender'],
             colors: [
                 '#5BCEFA',
                 '#F5A9B8',
@@ -216,7 +216,7 @@
         {
             id: 'asexual',
             label: 'Asexual',
-            words: ['asexual', 'ace'],
+            words: ['asexual'],
             colors: [
                 '#000000',
                 '#A3A3A3',
@@ -229,7 +229,7 @@
         {
             id: 'aromantic',
             label: 'Aromantic',
-            words: ['aromantic', 'aro'],
+            words: ['aromantic'],
             colors: [
                 '#3DA542',
                 '#A7D379',
@@ -853,7 +853,7 @@
         {
             id: 'bear',
             label: 'Bear',
-            words: ['bear', 'bears'],
+            words: ['bear pride'],
             colors: [
                 '#623804',
                 '#D56300',
@@ -869,7 +869,7 @@
         {
             id: 'leather',
             label: 'Leather',
-            words: ['leather', 'leather pride'],
+            words: ['leather pride'],
             colors: [
                 '#000000',
                 '#18186B',
@@ -889,7 +889,7 @@
         {
             id: 'straight-ally',
             label: 'Straight Ally',
-            words: ['straight ally', 'ally', 'allies'],
+            words: ['straight ally', 'lgbtq ally', 'lgbtq allies'],
             colors: [
                 '#000000',
                 '#FFFFFF',
@@ -932,7 +932,7 @@
      * retained verbatim.
      */
     function polishedRuntime(flags) {
-        const VERSION = '2.0.4';
+        const VERSION = '2.1.0';
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
         const POSITION_KEY = 'prism.pride-highlighter.dock-position';
@@ -976,6 +976,25 @@
             };
         }
         function save() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_err) {} }
+        function exportSettings() {
+            const payload = { app: 'Prism Pride Highlighter', version: VERSION, settings, dock: savedDock() };
+            const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+            const link = document.createElement('a'); link.href = url; link.download = `prism-pride-highlighter-${VERSION}-settings.json`; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 0); setStatus('Settings exported');
+        }
+        async function importSettings(file) {
+            try {
+                const payload = JSON.parse(await file.text());
+                const source = payload?.settings && typeof payload.settings === 'object' ? payload.settings : payload;
+                if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid settings file');
+                settings = normalise(source); save();
+                if (payload?.dock && Number.isFinite(payload.dock.right) && Number.isFinite(payload.dock.bottom)) {
+                    localStorage.setItem(POSITION_KEY, JSON.stringify(payload.dock)); placeDock();
+                }
+                refresh(); setStatus('Settings imported');
+            } catch (_err) { setStatus('Could not import that file', true); }
+        }
+        function setStatus(message, error = false) { const node = panel?.querySelector('#pph-message'); if (node) { node.textContent = message; node.dataset.error = error ? '1' : '0'; } }
         function host() { return location.hostname; }
         function excluded() { return settings.excludedHosts.includes(host()); }
         function active() { return domSafeForHighlight && settings.enabled && !excluded() && Boolean(matcher); }
@@ -1007,7 +1026,7 @@
 #${ROOT_ID} .pph-quick{display:flex;gap:4px;margin-top:9px}#${ROOT_ID} .pph-quick button{flex:1;min-height:28px;border:1px solid #ffffff28;border-radius:7px;background:#1c2230;color:#e8edf7;font-size:11px;cursor:pointer}#${ROOT_ID} .pph-quick button[aria-pressed="true"]{border-color:transparent;background:linear-gradient(90deg,#ff90bd,#ffe071,#77dfff);color:#10131a}
 #${ROOT_ID} .pph-section{border-top:1px solid #ffffff18;padding-top:8px;padding-bottom:8px}#${ROOT_ID} .pph-title{margin-bottom:4px;color:#aeb7c7;font:700 10px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}#${ROOT_ID} .pph-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;font:13px/1.2 system-ui,sans-serif}#${ROOT_ID} .pph-copy{min-width:0}#${ROOT_ID} .pph-detail{display:block;color:#abb4c3;font-size:11px;margin-top:2px}#${ROOT_ID} .pph-status{color:#8fe3a6}.pph-status[data-excluded="1"]{color:#ffb0b0}
 #${ROOT_ID} .pph-switch{display:inline-flex;width:36px;height:20px;flex:none;cursor:pointer}#${ROOT_ID} .pph-switch input{position:absolute;opacity:0;width:1px;height:1px}#${ROOT_ID} .pph-track{width:36px;height:20px;border:1px solid #ffffff35;border-radius:99px;background:#596171}#${ROOT_ID} .pph-track::after{content:"";display:block;width:14px;height:14px;margin:2px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0008;transition:transform .15s}#${ROOT_ID} .pph-switch input:checked+.pph-track{background:linear-gradient(90deg,#e66aa1,#67cfff,#a185f5)}#${ROOT_ID} .pph-switch input:checked+.pph-track::after{transform:translateX(16px)}#${ROOT_ID} .pph-switch input:focus-visible+.pph-track{outline:2px solid #9bdcff;outline-offset:2px}
-#${ROOT_ID} select,#${ROOT_ID} .pph-actions button{border:1px solid #ffffff30;border-radius:8px;background:#1c2230;color:#f2f4f8;padding:6px 8px;font-size:12px}#${ROOT_ID} details summary{display:flex;align-items:center;justify-content:space-between;min-height:32px;cursor:pointer;font:13px system-ui,sans-serif}#${ROOT_ID} details summary::after{content:"Show";color:#9bdcff;font-size:11px}#${ROOT_ID} details[open] summary::after{content:"Hide"}#${ROOT_ID} .pph-search{width:100%;margin:4px 0 7px;padding:7px 8px;border:1px solid #ffffff30;border-radius:7px;background:#171c27;color:#fff}#${ROOT_ID} .pph-flags{max-height:220px;overflow:auto;border:1px solid #ffffff1c;border-radius:9px;padding:0 8px}#${ROOT_ID} .pph-flag{display:flex;align-items:center;justify-content:space-between;min-height:30px;border-bottom:1px solid #ffffff12;font:12px system-ui,sans-serif}#${ROOT_ID} .pph-flag:last-child{border:0}#${ROOT_ID} .pph-swatch{width:13px;height:13px;border-radius:3px;background:var(--swatch);margin-right:7px;display:inline-block;vertical-align:-2px}#${ROOT_ID} .pph-actions{position:sticky;bottom:0;display:flex;justify-content:space-between;padding-top:9px;padding-bottom:10px;border-top:1px solid #ffffff1c;background:#12141a}
+#${ROOT_ID} select,#${ROOT_ID} .pph-actions button,#${ROOT_ID} .pph-transfer button{border:1px solid #ffffff30;border-radius:8px;background:#1c2230;color:#f2f4f8;padding:6px 8px;font-size:12px}#${ROOT_ID} details summary{display:flex;align-items:center;justify-content:space-between;min-height:32px;cursor:pointer;font:13px system-ui,sans-serif}#${ROOT_ID} details summary::after{content:"Show";color:#9bdcff;font-size:11px}#${ROOT_ID} details[open] summary::after{content:"Hide"}#${ROOT_ID} .pph-search{width:100%;margin:4px 0 7px;padding:7px 8px;border:1px solid #ffffff30;border-radius:7px;background:#171c27;color:#fff}#${ROOT_ID} .pph-flags{max-height:220px;overflow:auto;border:1px solid #ffffff1c;border-radius:9px;padding:0 8px}#${ROOT_ID} .pph-flag{display:flex;align-items:center;justify-content:space-between;min-height:30px;border-bottom:1px solid #ffffff12;font:12px system-ui,sans-serif}#${ROOT_ID} .pph-flag:last-child{border:0}#${ROOT_ID} .pph-swatch{width:13px;height:13px;border-radius:3px;background:var(--swatch);margin-right:7px;display:inline-block;vertical-align:-2px}#${ROOT_ID} .pph-transfer{display:flex;gap:6px;padding-top:4px}#${ROOT_ID} .pph-message{min-height:14px;margin:4px 0 0;color:#8fe3a6;font:11px/1.2 system-ui,sans-serif}#${ROOT_ID} .pph-message[data-error="1"]{color:#ffb0b0}#${ROOT_ID} .pph-version{align-self:center;color:#abb4c3;font:11px system-ui,sans-serif}#${ROOT_ID} .pph-actions{position:sticky;bottom:0;display:flex;gap:7px;justify-content:flex-end;padding-top:9px;padding-bottom:10px;border-top:1px solid #ffffff1c;background:#12141a}
 @media (prefers-reduced-motion:reduce){#${ROOT_ID} *{transition:none!important;animation:none!important}}
 `;
         }
@@ -1120,7 +1139,7 @@
             // Inline copy of the repository icon: no image request or CSP dependency.
             fab.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="refraction" x1="12" y1="11" x2="52" y2="53" gradientUnits="userSpaceOnUse"><stop stop-color="#ff4f9a"/><stop offset=".3" stop-color="#ffd54a"/><stop offset=".56" stop-color="#55d6ff"/><stop offset=".78" stop-color="#8d6cff"/><stop offset="1" stop-color="#ff6aa2"/></linearGradient><linearGradient id="facet" x1="21" y1="18" x2="42" y2="43" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset="1" stop-color="#dce8ff"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="#121722"/><path d="M32 10 37 27 54 32 37 37 32 54 27 37 10 32 27 27Z" fill="url(#refraction)"/><path d="m32 17 4.7 11.3L47 32l-10.3 3.7L32 47l-4.7-11.3L17 32l10.3-3.7Z" fill="url(#facet)"/><path d="m32 20 2.8 9.2L44 32l-9.2 2.8L32 44l-2.8-9.2L20 32l9.2-2.8Z" fill="#f8fbff"/></svg>`;
             panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.id='pph-panel';panel.setAttribute('role','dialog'); panel.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-controls',panel.id);
-            panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><footer class="pph-actions"><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
+            panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><section class="pph-section"><details><summary>Settings backup</summary><div class="pph-transfer"><button id="pph-export" type="button">Export</button><button id="pph-import" type="button">Import</button><input id="pph-import-file" type="file" accept="application/json,.json" hidden></div><p id="pph-message" class="pph-message" role="status" aria-live="polite"></p></details></section><footer class="pph-actions"><span class="pph-version">v${VERSION}</span><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
             for(const button of panel.querySelectorAll('[role=switch]'))Object.defineProperty(button,'checked',{get(){return this.getAttribute('aria-checked')==='true';},set(value){this.setAttribute('aria-checked',String(Boolean(value)));}});
             panel.querySelector('#pph-style').setAttribute('aria-label','Highlight style');panel.querySelector('#pph-intensity').setAttribute('aria-label','Intensity');
             uiShadow.append(panel, fab); (document.body || document.documentElement).append(uiRoot); placeDock(); bindUi(); syncUi();
@@ -1146,6 +1165,9 @@
             panel.querySelector('.pph-quick').addEventListener('click', event => { const button = event.target.closest('button[data-style]'); if (!button) return; panel.querySelector('#pph-style').value = button.dataset.style; apply(readUi()); });
             panel.querySelector('#pph-search').addEventListener('input', event => { const query = event.target.value.trim().toLowerCase(); panel.querySelectorAll('.pph-flag').forEach(row => row.hidden = Boolean(query) && !row.textContent.toLowerCase().includes(query)); });
             panel.querySelector('#pph-close').addEventListener('click', () => togglePanel(false));
+            panel.querySelector('#pph-export').addEventListener('click', exportSettings);
+            panel.querySelector('#pph-import').addEventListener('click', () => panel.querySelector('#pph-import-file').click());
+            panel.querySelector('#pph-import-file').addEventListener('change', event => { const [file] = event.target.files; if (file) importSettings(file); event.target.value = ''; });
             panel.querySelector('#pph-reset').addEventListener('click', () => { settings = { ...defaults, disabledFlags: [], excludedHosts: [] }; try { localStorage.removeItem(POSITION_KEY); } catch (_err) {} save(); placeDock(true); refresh(); });
             let startY = 0, startBottom = 0, moved = false;
             let startRight = 16;
@@ -1155,7 +1177,7 @@
             fab.addEventListener('pointercancel', () => { moved = false; delete fab.dataset.dragged; });
             panel.addEventListener('toggle',positionPanel,true);
             document.addEventListener('pointerdown',event=>{if(panel.dataset.open==='1'&&!event.composedPath().includes(uiRoot))togglePanel(false);});
-            document.addEventListener('keydown', event => { if (event.key === 'Escape'&&panel.dataset.open==='1') togglePanel(false); });
+            document.addEventListener('keydown', event => { if (event.altKey && event.key.toLowerCase() === 'g') { event.preventDefault(); togglePanel(panel.dataset.open !== '1'); } else if (event.key === 'Escape'&&panel.dataset.open==='1') togglePanel(false); });
             panel.addEventListener('keydown',event=>{if(event.key!=='Tab')return;const items=[...panel.querySelectorAll('button,select,input,summary')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(event.shiftKey&&uiShadow.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&uiShadow.activeElement===last){event.preventDefault();first.focus();}});
             window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { placeDock(); if (settings.visibleOnly) scheduleVisibleScan(); });
         }

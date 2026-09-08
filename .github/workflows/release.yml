@@ -42,4 +42,4 @@ jobs:
             prism-pride-highlighter-64.svg \
             prism-pride-highlighter-128.svg \
             --title "Prism Pride Highlighter $TAG" \
-            --notes "Removed the retired legacy runtime and reduced the userscript by roughly 54 KB. Hardened stylesheet installation with deduplicated fallbacks for documents and open Shadow Roots. Browser validation covers Manapool, Scryfall, SteamGifts, strict CSP, and environments without constructable stylesheets."
+            --notes "Removes ambiguous bare-word matches while retaining explicit identity names and phrases. Adds Alt+G menu access, settings export/import, and the current version in the panel. Browser validation now covers positive and negative matching examples, backup/restore, keyboard access, Manapool, Scryfall, SteamGifts, strict CSP, and environments without constructable stylesheets."

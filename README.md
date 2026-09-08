@@ -4,7 +4,7 @@
 
 Reveal LGBTQ+ identity words with their pride-flag colours, hover labels and a compact settings menu.
 
-**Version 2.0.4** · By [expDARE](https://github.com/ExtraPotions)
+**Version 2.1.0** · By [expDARE](https://github.com/ExtraPotions)
 
 ## Features
 
@@ -18,12 +18,14 @@ Reveal LGBTQ+ identity words with their pride-flag colours, hover labels and a c
 - Compact 312px menu with accessible toggle switches, keyboard focus and responsive positioning.
 - Reduced-motion and high-contrast options that respect system preferences.
 - Remembered settings and launcher position, with Reset defaults.
+- JSON export and import for backing up or moving settings.
+- **Alt+G** opens or closes the menu; the current version is shown in the footer.
 
-Bare “poly” is not matched; use “polysexual”, “polyamorous” or “polyam”.
+Ambiguous bare words such as “pride”, “bear”, “ally”, “bi”, “pan”, “ace”, “aro”, “trans”, “leather” and “poly” are not matched. Explicit identities and phrases such as “bisexual”, “pansexual”, “transgender”, “bear pride”, “straight ally” and “polysexual” remain supported.
 
 ## Controls and companion plugins
 
-Click the 48px rounded-square prism button to open settings. **Escape** or an outside click closes the menu. Tab moves through its visible controls. Drag the button vertically to save its preferred position.
+Click the 48px rounded-square prism button or press **Alt+G** to open settings. **Escape**, **Alt+G** or an outside click closes the menu. Tab moves through its visible controls. Drag the button vertically to save its preferred position.
 
 Prism recognizes other plugins made by expDARE and respects their positioning. **Amazon Dark Pattern Blocker and Theme Pickers always take primary position.** Prism makes room when its launcher overlaps a primary control, while keeping its saved preference.
 
