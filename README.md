@@ -4,7 +4,7 @@
 
 Reveal LGBTQ+ identity words with their pride-flag colours, hover labels and a compact settings menu.
 
-**Version 2.1.5** · By [expDARE](https://github.com/ExtraPotions)
+**Version 2.1.6** · By [expDARE](https://github.com/ExtraPotions)
 
 ## Features
 
@@ -24,6 +24,7 @@ Reveal LGBTQ+ identity words with their pride-flag colours, hover labels and a c
 - **Alt+G** opens or closes the menu; the current version is shown in the footer.
 - A launcher coordination protocol publishes ownership, companion priority, preferred placement and occupied space to avoid primary controls.
 - The menu shortcut can be changed or disabled, with collision warnings for other declared launchers.
+- Optional quiet update checks use release metadata only and never download executable code.
 
 Ambiguous bare words such as “pride”, “bear”, “ally”, “bi”, “pan”, “ace”, “aro”, “trans”, “leather” and “poly” are not matched. Explicit identities and phrases such as “bisexual”, “pansexual”, “transgender”, “bear pride”, “straight ally” and “polysexual” remain supported.
 

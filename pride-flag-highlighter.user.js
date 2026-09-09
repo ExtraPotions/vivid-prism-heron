@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.1.5
+// @version      2.1.6
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.5/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.6/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -932,7 +932,7 @@
      * retained verbatim.
      */
     function polishedRuntime(flags) {
-        const VERSION = '2.1.5';
+        const VERSION = '2.1.6';
         const SETTINGS_SCHEMA = 1;
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
@@ -941,7 +941,7 @@
         const HIT = 'pph-hit';
         const defaults = Object.freeze({
             enabled: true, style: 'gradient', intensity: 'balanced', labels: true,
-            visibleOnly: false, reducedMotion: false, highContrast: false,
+            visibleOnly: false, reducedMotion: false, highContrast: false, updateNotifications: false,
             disabledFlags: [], excludedHosts: [], shortcut: 'Alt+G'
         });
         const ignoredTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'BUTTON', 'CODE', 'PRE', 'KBD', 'SAMP', 'SVG', 'MATH']);
@@ -979,6 +979,7 @@
                 visibleOnly: source.visibleOnly === true,
                 reducedMotion: source.reducedMotion === true,
                 highContrast: source.highContrast === true,
+                updateNotifications: source.updateNotifications === true,
                 disabledFlags: Array.isArray(source.disabledFlags) ? [...new Set(source.disabledFlags.filter(v => typeof v === 'string'))] : [],
                 excludedHosts: Array.isArray(source.excludedHosts) ? [...new Set(source.excludedHosts.filter(v => typeof v === 'string'))] : [],
                 shortcut: normaliseShortcut(source.shortcut === undefined ? defaults.shortcut : source.shortcut)
@@ -1008,6 +1009,8 @@
             } catch (_err) { setStatus('Could not import that file', true); }
         }
         function setStatus(message, error = false) { const node = panel?.querySelector('#pph-message'); if (node) { node.textContent = message; node.dataset.error = error ? '1' : '0'; } }
+        function newerVersion(latest,current){const a=String(latest).split('.').map(Number),b=String(current).split('.').map(Number);if(a.some(Number.isNaN)||b.some(Number.isNaN))return false;for(let i=0;i<Math.max(a.length,b.length);i++){const difference=(a[i]||0)-(b[i]||0);if(difference)return difference>0;}return false;}
+        async function checkForUpdate(){if(!uiRoot)return;if(!settings.updateNotifications){uiRoot.removeAttribute('data-update-available');fab.title='Prism Pride Highlighter settings';return;}const key='prism.pride-highlighter.update-check';try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(cached&&Date.now()-cached.checked<86400000)return showUpdate(cached.latest);const response=await fetch('https://api.github.com/repos/ExtraPotions/vivid-prism-heron/releases/latest',{headers:{Accept:'application/vnd.github+json'}});if(!response.ok)return;const data=await response.json(),latest=String(data.tag_name||'').replace(/^v/,'');localStorage.setItem(key,JSON.stringify({checked:Date.now(),latest}));showUpdate(latest);}catch(_err){}function showUpdate(latest){uiRoot.removeAttribute('data-update-available');fab.title='Prism Pride Highlighter settings';if(!newerVersion(latest,VERSION))return;uiRoot.dataset.updateAvailable=latest;fab.title=`Prism Pride Highlighter ${latest} is available`;setStatus(`Update available: ${latest}`);}}
         function host() { return location.hostname; }
         function excluded() { return settings.excludedHosts.includes(host()); }
         function active() { return domSafeForHighlight && settings.enabled && !excluded() && Boolean(matcher); }
@@ -1166,6 +1169,7 @@
             panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.id='pph-panel';panel.setAttribute('role','dialog'); panel.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-controls',panel.id);
             panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div><div class="pph-row"><label for="pph-shortcut">Open menu shortcut</label><input id="pph-shortcut" type="text" placeholder="Off" aria-label="Open menu shortcut"></div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><section class="pph-section"><details><summary>Settings backup</summary><div class="pph-transfer"><button id="pph-export" type="button">Export</button><button id="pph-import" type="button">Import</button><input id="pph-import-file" type="file" accept="application/json,.json" hidden></div><p id="pph-message" class="pph-message" role="status" aria-live="polite"></p></details></section><section class="pph-section"><details><summary>About & diagnostics</summary><pre id="pph-diagnostics" class="pph-message"></pre><div class="pph-transfer"><button id="pph-copy-diagnostics" type="button">Copy diagnostics</button></div></details></section><footer class="pph-actions"><span class="pph-version">v${VERSION}</span><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
             for(const button of panel.querySelectorAll('[role=switch]'))Object.defineProperty(button,'checked',{get(){return this.getAttribute('aria-checked')==='true';},set(value){this.setAttribute('aria-checked',String(Boolean(value)));}});
+            const updateRow=document.createElement('div');updateRow.className='pph-row';updateRow.innerHTML=`<span>Quiet update notifications</span>${switchMarkup('pph-updates',settings.updateNotifications,'Quiet update notifications')}`;const shortcutRow=panel.querySelector('#pph-shortcut').closest('.pph-row');shortcutRow.before(updateRow);const updateSwitch=updateRow.querySelector('[role=switch]');Object.defineProperty(updateSwitch,'checked',{get(){return this.getAttribute('aria-checked')==='true';},set(value){this.setAttribute('aria-checked',String(Boolean(value)));}});
             const disableShortcut=document.createElement('button');disableShortcut.id='pph-disable-shortcut';disableShortcut.type='button';disableShortcut.textContent='Disable';panel.querySelector('#pph-shortcut').after(disableShortcut);
             panel.querySelector('#pph-style').setAttribute('aria-label','Highlight style');panel.querySelector('#pph-intensity').setAttribute('aria-label','Intensity');
             uiShadow.append(panel, fab); (document.body || document.documentElement).append(uiRoot); const launcher=declareLauncher(uiRoot,()=>[fab,panel],{owner:'expDARE',id:'prism-pride-highlighter',priority:50,preferredPosition:'right-bottom'}); placeDock(); bindUi(); syncUi();launcher.publish();
@@ -1174,12 +1178,12 @@
         function readUi() {
             const disabled = flags.filter(flag => !panel.querySelector(`#pph-flag-${CSS.escape(flag.id)}`)?.checked).map(flag => flag.id);
             const hosts = settings.excludedHosts.filter(value => value !== host()); if (panel.querySelector('#pph-exclude').checked && host()) hosts.push(host());
-            return normalise({ enabled: panel.querySelector('#pph-enabled').checked, style: panel.querySelector('#pph-style').value, intensity: panel.querySelector('#pph-intensity').value, labels: panel.querySelector('#pph-labels').checked, visibleOnly: panel.querySelector('#pph-visible').checked, reducedMotion: panel.querySelector('#pph-motion').checked, highContrast: panel.querySelector('#pph-contrast').checked, shortcut:panel.querySelector('#pph-shortcut').value, disabledFlags: disabled, excludedHosts: hosts });
+            return normalise({ enabled: panel.querySelector('#pph-enabled').checked, style: panel.querySelector('#pph-style').value, intensity: panel.querySelector('#pph-intensity').value, labels: panel.querySelector('#pph-labels').checked, visibleOnly: panel.querySelector('#pph-visible').checked, reducedMotion: panel.querySelector('#pph-motion').checked, highContrast: panel.querySelector('#pph-contrast').checked, updateNotifications:panel.querySelector('#pph-updates').checked, shortcut:panel.querySelector('#pph-shortcut').value, disabledFlags: disabled, excludedHosts: hosts });
         }
         function apply(next) { settings = next; save(); refresh(); }
         function syncUi() {
             if (!panel) return; uiRoot.dataset.contrast = settings.highContrast ? '1' : '0'; uiRoot.dataset.motion = settings.reducedMotion ? '1' : '0';
-            panel.querySelector('#pph-enabled').checked = settings.enabled; panel.querySelector('#pph-exclude').checked = excluded(); panel.querySelector('#pph-style').value = settings.style; panel.querySelector('#pph-intensity').value = settings.intensity; panel.querySelector('#pph-labels').checked = settings.labels; panel.querySelector('#pph-visible').checked = settings.visibleOnly; panel.querySelector('#pph-motion').checked = settings.reducedMotion; panel.querySelector('#pph-contrast').checked = settings.highContrast;panel.querySelector('#pph-shortcut').value=settings.shortcut;uiRoot.dataset.launcherShortcuts=JSON.stringify(settings.shortcut?[settings.shortcut]:[]);
+            panel.querySelector('#pph-enabled').checked = settings.enabled; panel.querySelector('#pph-exclude').checked = excluded(); panel.querySelector('#pph-style').value = settings.style; panel.querySelector('#pph-intensity').value = settings.intensity; panel.querySelector('#pph-labels').checked = settings.labels; panel.querySelector('#pph-visible').checked = settings.visibleOnly; panel.querySelector('#pph-motion').checked = settings.reducedMotion; panel.querySelector('#pph-contrast').checked = settings.highContrast;panel.querySelector('#pph-updates').checked=settings.updateNotifications;panel.querySelector('#pph-shortcut').value=settings.shortcut;uiRoot.dataset.launcherShortcuts=JSON.stringify(settings.shortcut?[settings.shortcut]:[]);checkForUpdate();
             panel.querySelectorAll('.pph-quick button').forEach(button => button.setAttribute('aria-pressed', button.dataset.style === settings.style ? 'true' : 'false'));
             for(const flag of flags)panel.querySelector(`#pph-flag-${CSS.escape(flag.id)}`).checked=!settings.disabledFlags.includes(flag.id);
             panel.querySelector('#pph-host').textContent = `Current site: ${host() || '(unknown)'}`; const status = panel.querySelector('#pph-status'); status.textContent = excluded() ? 'Highlighting paused on this site' : 'Highlighting active on this site'; status.dataset.excluded = excluded() ? '1' : '0';
