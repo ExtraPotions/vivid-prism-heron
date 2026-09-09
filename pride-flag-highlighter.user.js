@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Prism Pride Highlighter
 // @namespace    prism.pride-highlighter
-// @version      2.1.4
+// @version      2.1.5
 // @description  Reveals queer- and LGBTQ+-related words with their associated pride flag colours.
 // @author       expDARE
 // @license      CC BY-NC-SA 4.0
@@ -9,7 +9,7 @@
 // @run-at       document-start
 // @grant        none
 // @noframes
-// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.4/prism-pride-highlighter.svg
+// @icon         https://raw.githubusercontent.com/ExtraPotions/vivid-prism-heron/v2.1.5/prism-pride-highlighter.svg
 // @downloadURL  https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // @updateURL    https://github.com/ExtraPotions/vivid-prism-heron/releases/latest/download/pride-flag-highlighter.user.js
 // ==/UserScript==
@@ -932,7 +932,7 @@
      * retained verbatim.
      */
     function polishedRuntime(flags) {
-        const VERSION = '2.1.4';
+        const VERSION = '2.1.5';
         const SETTINGS_SCHEMA = 1;
         const SETTINGS_KEY = 'prism.pride-highlighter.settings';
         const LEGACY_KEY = 'pride.flag-highlighter.settings';
@@ -1149,6 +1149,7 @@
         function normaliseShortcut(value){if(typeof value!=='string')return defaults.shortcut;const raw=value.trim();if(!raw||/^off$/i.test(raw))return '';const parts=raw.split('+').map(v=>v.trim()).filter(Boolean),key=parts.pop();if(!key)return '';const mods=['Ctrl','Alt','Shift','Meta'].filter(mod=>parts.some(v=>v.toLowerCase()===mod.toLowerCase()));return [...mods,key.length===1?key.toUpperCase():key].join('+');}
         function eventShortcut(event){return [...(event.ctrlKey?['Ctrl']:[]),...(event.altKey?['Alt']:[]),...(event.shiftKey?['Shift']:[]),...(event.metaKey?['Meta']:[]),event.key.length===1?event.key.toUpperCase():event.key].join('+');}
         function editableTarget(target){return target?.matches?.('input,textarea,select,[contenteditable="true"]');}
+        function shortcutBlocked(node,shortcut){const priority=Number(node?.dataset.launcherPriority||0),id=node?.dataset.launcherId||'';return [...document.querySelectorAll('[data-userscript-launcher="userscript-launcher-v1"]')].some(el=>{if(el===node)return false;let shortcuts=[];try{shortcuts=JSON.parse(el.dataset.launcherShortcuts||'[]');}catch{}const other=Number(el.dataset.launcherPriority||0);return shortcuts.includes(shortcut)&&(other>priority||(other===priority&&(el.dataset.launcherId||'').localeCompare(id)<0));});}
         function declareLauncher(node,controls,meta){
             node.dataset.userscriptLauncher=LAUNCHER_PROTOCOL;node.dataset.launcherOwner=meta.owner;node.dataset.launcherId=meta.id;node.dataset.launcherPriority=String(meta.priority);node.dataset.launcherPreferredPosition=meta.preferredPosition;
             let frame=0;const publish=()=>{frame=0;const rects=controls().filter(el=>el?.isConnected&&el.getClientRects().length).map(el=>el.getBoundingClientRect());if(!rects.length)return;const area={left:Math.round(Math.min(...rects.map(r=>r.left))),top:Math.round(Math.min(...rects.map(r=>r.top))),right:Math.round(Math.max(...rects.map(r=>r.right))),bottom:Math.round(Math.max(...rects.map(r=>r.bottom)))};node.dataset.launcherOccupiedArea=JSON.stringify(area);window.dispatchEvent(new CustomEvent('userscript-launcher:change',{detail:{protocol:LAUNCHER_PROTOCOL,owner:meta.owner,id:meta.id,priority:meta.priority,preferredPosition:meta.preferredPosition,occupiedArea:area}}));};
@@ -1165,6 +1166,7 @@
             panel = document.createElement('aside'); panel.className = 'pph-panel'; panel.id='pph-panel';panel.setAttribute('role','dialog'); panel.setAttribute('aria-label', 'Prism Pride Highlighter settings'); fab.setAttribute('aria-controls',panel.id);
             panel.innerHTML = `<div class="pph-head"><h2>Prism Pride Highlighter</h2><p class="pph-sub">Reveal identity colour cues in page text.</p><div class="pph-quick" aria-label="Quick style buttons"><button data-style="gradient">Gradient</button><button data-style="underline">Underline</button><button data-style="background">Soft fill</button></div></div><section class="pph-section"><div class="pph-title">Protection</div><div class="pph-row"><span class="pph-copy"><b>Highlight protection</b><span class="pph-detail">Enable colour highlighting</span></span>${switchMarkup('pph-enabled', settings.enabled, 'Enable highlighting')}</div></section><section class="pph-section"><div class="pph-title">This site</div><div class="pph-row"><span class="pph-copy">Exclude this site<span id="pph-host" class="pph-detail"></span><span id="pph-status" class="pph-detail pph-status" role="status"></span></span>${switchMarkup('pph-exclude', excluded(), 'Exclude this site')}</div></section><section class="pph-section"><div class="pph-title">Appearance</div><div class="pph-row"><span>Highlight style</span><select id="pph-style"><option value="gradient">Gradient text</option><option value="underline">Underline</option><option value="background">Soft background</option></select></div><div class="pph-row"><span>Intensity</span><select id="pph-intensity"><option value="subtle">Subtle</option><option value="balanced">Balanced</option><option value="vivid">Vivid</option></select></div><div class="pph-row"><span>Hover labels</span>${switchMarkup('pph-labels', settings.labels, 'Show hover labels')}</div></section><section class="pph-section"><details><summary>Performance & accessibility</summary><div class="pph-row"><span>Only process visible content</span>${switchMarkup('pph-visible', settings.visibleOnly, 'Only process visible content')}</div><div class="pph-row"><span>Reduce motion</span>${switchMarkup('pph-motion', settings.reducedMotion, 'Reduce motion')}</div><div class="pph-row"><span>High contrast</span>${switchMarkup('pph-contrast', settings.highContrast, 'High contrast')}</div><div class="pph-row"><label for="pph-shortcut">Open menu shortcut</label><input id="pph-shortcut" type="text" placeholder="Off" aria-label="Open menu shortcut"></div></details></section><section class="pph-section"><details><summary>Flag visibility</summary><input id="pph-search" class="pph-search" type="search" placeholder="Search ${flags.length} flags" aria-label="Search flags"><div class="pph-flags">${flagMarkup()}</div></details></section><section class="pph-section"><details><summary>Settings backup</summary><div class="pph-transfer"><button id="pph-export" type="button">Export</button><button id="pph-import" type="button">Import</button><input id="pph-import-file" type="file" accept="application/json,.json" hidden></div><p id="pph-message" class="pph-message" role="status" aria-live="polite"></p></details></section><section class="pph-section"><details><summary>About & diagnostics</summary><pre id="pph-diagnostics" class="pph-message"></pre><div class="pph-transfer"><button id="pph-copy-diagnostics" type="button">Copy diagnostics</button></div></details></section><footer class="pph-actions"><span class="pph-version">v${VERSION}</span><button id="pph-reset" type="button">Reset defaults</button><button id="pph-close" type="button">Close</button></footer>`;
             for(const button of panel.querySelectorAll('[role=switch]'))Object.defineProperty(button,'checked',{get(){return this.getAttribute('aria-checked')==='true';},set(value){this.setAttribute('aria-checked',String(Boolean(value)));}});
+            const disableShortcut=document.createElement('button');disableShortcut.id='pph-disable-shortcut';disableShortcut.type='button';disableShortcut.textContent='Disable';panel.querySelector('#pph-shortcut').after(disableShortcut);
             panel.querySelector('#pph-style').setAttribute('aria-label','Highlight style');panel.querySelector('#pph-intensity').setAttribute('aria-label','Intensity');
             uiShadow.append(panel, fab); (document.body || document.documentElement).append(uiRoot); const launcher=declareLauncher(uiRoot,()=>[fab,panel],{owner:'expDARE',id:'prism-pride-highlighter',priority:50,preferredPosition:'right-bottom'}); placeDock(); bindUi(); syncUi();launcher.publish();
             new MutationObserver(positionPanel).observe(uiRoot,{attributes:true,attributeFilter:['style']});
@@ -1187,6 +1189,7 @@
             fab.addEventListener('click', event => { if (fab.dataset.dragged === '1') { delete fab.dataset.dragged; return; } togglePanel(panel.dataset.open !== '1'); });
             panel.addEventListener('change', () => apply(readUi()));
             panel.querySelector('#pph-shortcut').addEventListener('change',()=>{const collision=[...document.querySelectorAll('[data-userscript-launcher="userscript-launcher-v1"]')].some(el=>{if(el===uiRoot)return false;try{return JSON.parse(el.dataset.launcherShortcuts||'[]').includes(settings.shortcut);}catch{return false;}});setStatus(collision?'Shortcut is also used by another installed script.':'Shortcut saved.',collision);});
+            panel.querySelector('#pph-disable-shortcut').addEventListener('click',()=>{panel.querySelector('#pph-shortcut').value='';apply(readUi());setStatus('Keyboard shortcut disabled');});
             panel.addEventListener('click',event=>{const button=event.target.closest('[role=switch]');if(button){button.checked=!button.checked;apply(readUi());}});
             panel.querySelector('.pph-quick').addEventListener('click', event => { const button = event.target.closest('button[data-style]'); if (!button) return; panel.querySelector('#pph-style').value = button.dataset.style; apply(readUi()); });
             panel.querySelector('#pph-search').addEventListener('input', event => { const query = event.target.value.trim().toLowerCase(); panel.querySelectorAll('.pph-flag').forEach(row => row.hidden = Boolean(query) && !row.textContent.toLowerCase().includes(query)); });
@@ -1204,11 +1207,11 @@
             fab.addEventListener('pointercancel', () => { moved = false; delete fab.dataset.dragged; });
             panel.addEventListener('toggle',positionPanel,true);
             document.addEventListener('pointerdown',event=>{if(panel.dataset.open==='1'&&!event.composedPath().includes(uiRoot))togglePanel(false);});
-            document.addEventListener('keydown', event => { if (settings.shortcut&&!editableTarget(event.target)&&eventShortcut(event)===normaliseShortcut(settings.shortcut)) { event.preventDefault(); togglePanel(panel.dataset.open !== '1'); } else if (event.key === 'Escape'&&panel.dataset.open==='1') togglePanel(false); });
+            document.addEventListener('keydown', event => { if (settings.shortcut&&!editableTarget(event.target)&&eventShortcut(event)===normaliseShortcut(settings.shortcut)&&!shortcutBlocked(uiRoot,normaliseShortcut(settings.shortcut))) { event.preventDefault(); togglePanel(panel.dataset.open !== '1'); } else if (event.key === 'Escape'&&panel.dataset.open==='1') togglePanel(false); });
             panel.addEventListener('keydown',event=>{if(event.key!=='Tab')return;const items=[...panel.querySelectorAll('button,select,input,summary')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(event.shiftKey&&uiShadow.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&uiShadow.activeElement===last){event.preventDefault();first.focus();}});
             window.addEventListener('scroll', scheduleVisibleScan, { passive:true }); window.addEventListener('resize', () => { placeDock(); if (settings.visibleOnly) scheduleVisibleScan(); });
         }
-        function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false');positionPanel(); if(open)panel.querySelector('button').focus();else fab.focus(); }
+        function togglePanel(open) { panel.dataset.open = open ? '1' : '0'; fab.setAttribute('aria-expanded', open ? 'true' : 'false');positionPanel(); if(open){if(uiRoot.dataset.launcherShortcutCollision==='true')setStatus('Shortcut conflict detected; the higher-priority launcher responds first.',true);panel.querySelector('button').focus();}else fab.focus(); }
         function savedDock() { try { const value = JSON.parse(localStorage.getItem(POSITION_KEY)); return Number.isFinite(value?.right) && Number.isFinite(value?.bottom) ? value : null; } catch (_err) { return null; } }
         function saveDock() { const rect=uiRoot.getBoundingClientRect();try { localStorage.setItem(POSITION_KEY, JSON.stringify({ right: innerWidth-rect.right, bottom: innerHeight-rect.bottom })); } catch (_err) {} }
         function positionPanel(){if(!panel||!uiRoot)return;const r=uiRoot.getBoundingClientRect();panel.style.right=`${Math.max(12,Math.min(innerWidth-r.right,innerWidth-324))}px`;panel.style.bottom='auto';panel.style.top=`${Math.max(12,Math.min(r.top-panel.offsetHeight-8,innerHeight-panel.offsetHeight-12))}px`;}

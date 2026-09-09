@@ -1,1 +1,1 @@
-{"name":"prism-pride-highlighter","private":true,"version":"2.1.4","scripts":{"test":"node tests/browser.cjs"},"devDependencies":{"playwright":"1.55.0"}}
+{"name":"prism-pride-highlighter","private":true,"version":"2.1.5","scripts":{"test":"node tests/browser.cjs"},"devDependencies":{"playwright":"1.55.0"}}
